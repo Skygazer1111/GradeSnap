@@ -196,3 +196,48 @@ export function getPerformanceLabel(level) {
 export function getPerformanceBadgeClass(level) {
   return PERFORMANCE_BADGE_CLASSES[level] || PERFORMANCE_BADGE_CLASSES.fail;
 }
+
+/**
+ * Returns the result mood for celebration / neutral / disappointment screens.
+ *
+ * @param {string} level - Performance level from calculateCGPA.
+ * @returns {'celebration'|'neutral'|'disappointment'}
+ */
+export function getResultMood(level) {
+  if (['distinction', 'first'].includes(level)) return 'celebration';
+  if (level === 'fail') return 'disappointment';
+  return 'neutral';
+}
+
+/**
+ * Returns headline content for the result mood screen.
+ *
+ * @param {string} level
+ * @param {number} cgpa
+ * @param {number} maxPoints
+ * @returns {{mood: string, emoji: string, title: string, message: string}}
+ */
+export function getResultMoodContent(level, cgpa, maxPoints) {
+  const mood = getResultMood(level);
+  const score = cgpa.toFixed(2);
+
+  const content = {
+    celebration: {
+      emoji: '🎉',
+      title: 'Celebration time!',
+      message: `Your CGPA is ${score} / ${maxPoints}. Excellent work — you should be proud!`,
+    },
+    neutral: {
+      emoji: '👍',
+      title: 'Solid result',
+      message: `Your CGPA is ${score} / ${maxPoints}. Good progress — keep building on this.`,
+    },
+    disappointment: {
+      emoji: '📚',
+      title: 'Keep going',
+      message: `Your CGPA is ${score} / ${maxPoints}. Review your subjects, fix weak spots, and bounce back stronger.`,
+    },
+  };
+
+  return { mood, ...content[mood] };
+}

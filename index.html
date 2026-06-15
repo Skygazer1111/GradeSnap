@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GradeSnap — AI CGPA Calculator</title>
-  <meta name="description" content="GradeSnap is an AI-powered CGPA calculator that extracts grades from your gradesheet image and computes your CGPA instantly. Free, private, and blazing fast." />
+  <title>GradeSnap — CGPA Calculator</title>
+  <meta name="description" content="GradeSnap extracts grades from your gradesheet image using local OCR and computes your CGPA instantly. Free, private, and runs in your browser." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -20,12 +20,6 @@
         <span class="logo-icon">📸</span>
         <span>Grade<span class="logo-accent">Snap</span></span>
       </a>
-      <button id="settings-btn" class="btn btn-icon" aria-label="Settings">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-        </svg>
-      </button>
     </div>
   </header>
 
@@ -33,13 +27,13 @@
   <main>
     <section id="hero-section" class="section active">
       <div class="container hero-content">
-        <span class="hero-badge">✨ AI-Powered</span>
+        <span class="hero-badge">✨ Local OCR</span>
         <h1 class="hero-title">
           Snap Your Grades,<br />
           <span class="gradient-text">Get Your CGPA</span>
         </h1>
         <p class="hero-subtitle">
-          Upload a photo of your gradesheet and let AI extract your grades, calculate your CGPA, and deliver results — all in seconds.
+          Upload a photo of your gradesheet. OCR reads your grades locally in the browser, then calculates your CGPA in seconds.
         </p>
         <button id="get-started-btn" class="btn btn-primary btn-lg">
           Get Started <span class="btn-arrow">→</span>
@@ -101,7 +95,7 @@
         </div>
 
         <div id="upload-actions" class="upload-actions" hidden>
-          <button id="extract-btn" class="btn btn-primary btn-lg">🔍 Extract Grades with AI</button>
+          <button id="extract-btn" class="btn btn-primary btn-lg">🔍 Extract Grades</button>
         </div>
       </div>
     </section>
@@ -114,9 +108,9 @@
             <div class="pulse-ring" style="animation-delay: 0s;"></div>
             <div class="pulse-ring" style="animation-delay: 0.6s;"></div>
             <div class="pulse-ring" style="animation-delay: 1.2s;"></div>
-            <div class="processing-icon">🤖</div>
+            <div class="processing-icon">📄</div>
           </div>
-          <h2>AI is analyzing your gradesheet...</h2>
+          <h2>Reading your gradesheet...</h2>
           <div id="progress-steps" class="progress-steps">
             <div class="progress-step active" data-step="1">
               <span class="step-dot"></span>
@@ -135,7 +129,7 @@
               <span>Done!</span>
             </div>
           </div>
-          <p class="processing-eta">Usually takes 5–10 seconds</p>
+          <p class="processing-eta">First run may take a little longer while OCR loads</p>
         </div>
       </div>
     </section>
@@ -146,6 +140,7 @@
         <div class="section-header">
           <span class="step-badge">Step 2</span>
           <h2>Review &amp; Edit Extracted Data</h2>
+          <p class="section-subtitle">Check the subjects OCR found. Edit, delete, or add rows before calculating CGPA.</p>
         </div>
 
         <div class="data-controls glass-card">
@@ -200,6 +195,14 @@
           <span class="step-badge">Result</span>
         </div>
 
+        <div id="result-mood-banner" class="result-mood-banner" hidden>
+          <span id="result-mood-emoji" class="result-mood-emoji"></span>
+          <h2 id="result-mood-title" class="result-mood-title"></h2>
+          <p id="result-mood-message" class="result-mood-message"></p>
+        </div>
+
+        <div id="confetti-container" class="confetti-container" aria-hidden="true"></div>
+
         <div id="result-card" class="result-card glass-card">
           <div class="cgpa-display">
             <div class="cgpa-value-wrapper">
@@ -241,36 +244,13 @@
     </section>
   </main>
 
-  <!-- ═══════════════════ API KEY MODAL ═══════════════════ -->
-  <div id="api-key-modal" class="modal">
-    <div class="modal-backdrop"></div>
-    <div class="modal-content glass-card">
-      <h3>🔑 Enter Your Gemini API Key</h3>
-      <p>Your API key is stored <strong>locally in your browser</strong> and is never sent to any server other than Google's Gemini API.</p>
-      <div class="input-group">
-        <input type="password" id="api-key-input" placeholder="Paste your Gemini API key…" autocomplete="off" />
-        <button id="toggle-key-visibility" class="btn btn-icon" type="button" aria-label="Toggle key visibility">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-        </button>
-      </div>
-      <p class="helper-text">Get a free API key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com</a> — no credit card needed!</p>
-      <div class="modal-actions">
-        <button id="skip-api-key-btn" class="btn btn-secondary">Use Demo Data</button>
-        <button id="save-api-key-btn" class="btn btn-primary">Save &amp; Continue</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ═══════════════════ TOAST CONTAINER ═══════════════════ -->
   <div id="toast-container"></div>
 
   <!-- ═══════════════════ FOOTER ═══════════════════ -->
   <footer>
     <div class="container">
-      <p>Built with ❤️ and AI &bull; GradeSnap &copy; 2026</p>
+      <p>Built with ❤️ &bull; GradeSnap &copy; 2026</p>
       <p class="footer-note">Your data never leaves your browser. 100% private.</p>
     </div>
   </footer>

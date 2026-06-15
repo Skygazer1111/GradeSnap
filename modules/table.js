@@ -48,6 +48,7 @@ class DataTable {
   setData(subjects) {
     this.data = subjects.map(s => ({ ...s }));
     this.render();
+    this._notifyChange();
   }
 
   /**
