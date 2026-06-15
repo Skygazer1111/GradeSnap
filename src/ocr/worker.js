@@ -9,7 +9,7 @@ import {
   grayscaleToRgba,
   preprocessGrayscale,
   rgbaToGrayscale,
-} from './image-preprocess.js';
+} from './preprocess.js';
 
 /**
  * Preprocesses a gradesheet image for OCR.

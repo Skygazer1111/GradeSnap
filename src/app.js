@@ -4,11 +4,11 @@
  * Orchestrates OCR, parsing, calculation, data table, and export.
  */
 
-import { extractGrades } from './modules/ocr.js';
-import { parseOcrText, GRADING_SCALES } from './modules/parser.js';
-import { calculateCGPA, getPerformanceLabel, getPerformanceBadgeClass, getResultMoodContent } from './modules/calculator.js';
-import DataTable from './modules/table.js';
-import { copyToClipboard, exportAsPNG, generateShareLink, parseShareLink } from './modules/export.js';
+import { extractGrades } from './ocr/worker.js';
+import { parseOcrText, GRADING_SCALES } from './ocr/parser.js';
+import { calculateCGPA, getPerformanceLabel, getPerformanceBadgeClass, getResultMoodContent } from './core/calculator.js';
+import DataTable from './ui/table.js';
+import { copyToClipboard, exportAsPNG, generateShareLink, parseShareLink } from './services/exporter.js';
 
 const state = {
   currentSection: 'hero-section',
@@ -237,7 +237,7 @@ function updateProgressStep(stepNum, status) {
   step.classList.remove('active', 'done', 'default');
   step.classList.add(status);
 
-  const icon = step.querySelector('.step-icon');
+  const icon = step.querySelector('.step-dot');
   if (icon) {
     if (status === 'done') {
       icon.textContent = '✓';
@@ -697,15 +697,7 @@ function initHeroEvents() {
   }
 }
 
-function preloadHtml2Canvas() {
-  if (window.html2canvas) return;
 
-  const link = document.createElement('link');
-  link.rel = 'preload';
-  link.as = 'script';
-  link.href = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-  document.head.appendChild(link);
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   const scaleSelect = document.getElementById('grading-scale-select');
@@ -725,7 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showSection('hero-section');
   }
 
-  preloadHtml2Canvas();
+
 
   console.log('%c🎓 GradeSnap', 'font-size: 20px; font-weight: bold; color: #7c3aed;');
   console.log('%cCGPA Calculator with local OCR', 'font-size: 12px; color: #94a3b8;');

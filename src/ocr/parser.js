@@ -8,7 +8,7 @@ import {
   getAvailableGrades,
   getGradePoints,
   normalizeGradeSymbol,
-} from './grade-mapper.js';
+} from '../core/grade-mapper.js';
 import {
   applyOcrGradeCreditFixes,
   COURSE_CODE_PATTERN,
@@ -19,12 +19,12 @@ import {
   normalizeOcrTextBlock,
   parseCreditValue,
   stripGradesheetDatePrefix,
-} from './ocr-normalize.js';
-import { rectifySubjects } from './rectifier.js';
+} from './normalize.js';
+import { rectifySubjects } from '../core/rectifier.js';
 
 export { GRADING_SCALES, getAvailableGrades, getGradePoints };
 
-const GRADE_TAIL_TOKENS = 'A\\+|A-|B\\+|B-|C\\+|C-|D\\+|D-|Oo|\\[e\\]|\\[o\\]|\\[eo\\]|\\[lo\\]|\\(e\\]|\\(e\\}|O|A|B|C|D|F';
+const GRADE_TAIL_TOKENS = 'A\\+|A-|B\\+|B-|C\\+|C-|D\\+|D-|Oo|\\[e\\]|\\[o\\]|\\[eo\\]|\\[lo\\]|\\[0\\]|\\[s\\]|\\[S\\]|\\(e\\]|\\(e\\}|\\(o\\]|\\(o\\}|\\(s\\]|\\(s\\}|\\(S\\]|\\(S\\}|\\(0\\)|0|O|A|B|C|D|F';
 const GRADE_TOKENS = `${GRADE_TAIL_TOKENS}|P|S|E`;
 
 const FULL_ROW_REGEX = new RegExp(
@@ -33,7 +33,7 @@ const FULL_ROW_REGEX = new RegExp(
 );
 
 const COURSE_ROW_REGEX = new RegExp(
-  String.raw`${COURSE_CODE_PATTERN}\s+(.+?)\s+(\d{1,2}|\[0\]|0)\s+(${GRADE_TAIL_TOKENS}|Oo|\[0\])\s*(?:PASS|FAIL)?`,
+  String.raw`${COURSE_CODE_PATTERN}\s+((?:(?!${COURSE_CODE_PATTERN}).)+?)\s+(\d{1,2}|\[0\]|0)\s+(${GRADE_TAIL_TOKENS}|Oo|\[0\])\s*(?:PASS|FAIL)?`,
   'gi'
 );
 
@@ -78,9 +78,13 @@ function extractCreditGradeTail(beforePass) {
   const pair = extractCreditGradePair(beforePass);
   if (!pair) return null;
 
-  const idx = beforePass.search(
-    new RegExp(`\\b${pair.credits === 0 ? '\\[0\\]' : pair.credits}\\s+`, 'i')
+  const escapedGrade = pair.grade.replace(/[.[\]{}()*+?^$|]/g, '\\$&');
+  const suffixRegex = new RegExp(
+    `\\b${pair.credits === 0 ? '\\[0\\]' : pair.credits}\\s+${escapedGrade}\\s*$`,
+    'i'
   );
+  const match = beforePass.match(suffixRegex);
+  const idx = match ? match.index : -1;
 
   return {
     credits: pair.credits,

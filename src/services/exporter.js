@@ -4,6 +4,8 @@
  * shareable URL generation, and share link parsing.
  */
 
+import { getPerformanceLabel } from '../core/calculator.js';
+
 // ─── Helper ────────────────────────────────────────────────────────────────────
 
 /**
@@ -42,7 +44,7 @@ export async function copyToClipboard(result, subjects) {
       `📊 CGPA Result — GradeSnap`,
       `━━━━━━━━━━━━━━━━━━━`,
       `CGPA: ${result.cgpa} / ${result.maxPoints}`,
-      `Performance: ${result.performanceLabel}`,
+      `Performance: ${getPerformanceLabel(result.performanceLevel)}`,
       `Total Credits: ${result.totalCredits}`,
       `Total Grade Points: ${result.totalCreditPoints}`,
       `Subjects: ${result.subjectsCount}`,

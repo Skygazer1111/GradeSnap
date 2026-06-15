@@ -1,19 +1,19 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
-import { parseOcrText } from '../modules/parser.js';
-import { calculateCGPA, getResultMood } from '../modules/calculator.js';
+import { parseOcrText } from '../../src/ocr/parser.js';
+import { calculateCGPA, getResultMood } from '../../src/core/calculator.js';
 import {
   EXPECTED_SAMPLE2_CGPA,
   EXPECTED_SAMPLE2_MOOD,
   SAMPLE2_CLEAN_OCR_TEXT,
   SAMPLE2_NOISY_BROWSER_OCR_TEXT,
   SAMPLE2_SUBJECTS,
-} from './fixtures/sample-results.js';
-import { runOcrOnImage } from './ocr-runner.js';
+} from '../fixtures/sample-results.js';
+import { runOcrOnImage } from '../helpers/ocr-runner.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SAMPLE2_IMAGE = path.join(__dirname, '..', 'sample', 'SampleResults2.jpeg');
+const SAMPLE2_IMAGE = path.join(__dirname, '..', '..', 'sample', 'SampleResults2.jpeg');
 
 function subjectKey(subject) {
   return subject.toUpperCase().trim();

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { calculateCGPA, getResultMood } from '../modules/calculator.js';
+import { calculateCGPA, getResultMood } from '../../src/core/calculator.js';
 import {
   EXPECTED_CGPA_10_POINT,
   EXPECTED_MOOD,
   SAMPLE_SUBJECTS,
   SRM_USER_EXPECTED_CGPA,
   SRM_USER_SUBJECTS,
-} from './fixtures/sample-results.js';
+} from '../fixtures/sample-results.js';
 
 describe('calculateCGPA', () => {
   it('computes the expected CGPA for the sample semester results', () => {

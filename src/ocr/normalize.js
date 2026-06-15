@@ -3,13 +3,13 @@
  * @description Shared OCR text normalization for parser and rectifier.
  */
 
-import { normalizeGradeSymbol } from './grade-mapper.js';
+import { normalizeGradeSymbol } from '../core/grade-mapper.js';
 
-export const COURSE_CODE_PATTERN = '2[1Iil][A-Za-z]{3,4}\\d{3}[A-Za-z)]?';
+export const COURSE_CODE_PATTERN = '2[1Iil][A-Za-z]{2,5}\\d{2,4}[A-Za-z)]*';
 export const COURSE_CODE_REGEX = new RegExp(COURSE_CODE_PATTERN, 'i');
 
 const GRADE_TOKEN =
-  'A\\+|A-|B\\+|B-|C\\+|C-|D\\+|D-|Oo|\\[e\\]|\\[o\\]|\\[eo\\]|\\[lo\\]|\\[0\\]|\\(e\\]|\\(e\\}|O|A|B|C|D|F';
+  'A\\+|A-|B\\+|B-|C\\+|C-|D\\+|D-|Oo|\\[e\\]|\\[o\\]|\\[eo\\]|\\[lo\\]|\\[0\\]|\\[s\\]|\\[S\\]|\\(e\\]|\\(e\\}|\\(o\\]|\\(o\\}|\\(s\\]|\\(s\\}|\\(S\\]|\\(S\\}|\\(0\\)|0|O|A|B|C|D|F';
 
 const MONTH_NAMES =
   'JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC';
@@ -77,6 +77,18 @@ export function applyOcrGradeCreditFixes(text) {
     .replace(/\[e\]/gi, ' O ')
     .replace(/\(e\]/gi, ' O ')
     .replace(/\(e\}/gi, ' O ')
+    .replace(/\(o\]/gi, ' O ')
+    .replace(/\(o\}/gi, ' O ')
+    .replace(/\[s\]/gi, ' O ')
+    .replace(/\[S\]/gi, ' O ')
+    .replace(/\(s\]/gi, ' O ')
+    .replace(/\(s\}/gi, ' O ')
+    .replace(/\(S\]/gi, ' O ')
+    .replace(/\(S\}/gi, ' O ')
+    .replace(/(\d{1,2})\s+0\s+(PASS|FAIL)\b/gi, '$1 O $2')
+    .replace(/(\d{1,2})\s+\(0\)\s+(PASS|FAIL)\b/gi, '$1 O $2')
+    .replace(/(\d{1,2})\s+0\s*$/g, '$1 O')
+    .replace(/(\d{1,2})\s+\(0\)\s*$/g, '$1 O')
     .replace(/\blo\]/gi, ' O ')
     .replace(/\boO\b/g, ' O ')
     .replace(/\bOo\b/g, ' O ');

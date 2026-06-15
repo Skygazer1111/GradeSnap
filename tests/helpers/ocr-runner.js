@@ -6,7 +6,7 @@ import sharp from 'sharp';
 import {
   getOcrTargetSize,
   preprocessGrayscale,
-} from '../modules/image-preprocess.js';
+} from '../../src/ocr/preprocess.js';
 
 /**
  * Prepares a gradesheet image for OCR.

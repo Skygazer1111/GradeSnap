@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="src/style.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📸</text></svg>" />
 </head>
 <body>
@@ -146,9 +146,9 @@
         <div class="data-controls glass-card">
           <div class="scale-selector">
             <label for="grading-scale-select">Grading Scale:</label>
-            <select id="grading-scale-select">
-              <option value="10">SRM 10-Point (Indian)</option>
-              <option value="4">4-Point (US)</option>
+            <span class="scale-value" style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">SRM 10-Point (Indian)</span>
+            <select id="grading-scale-select" style="display: none;">
+              <option value="10" selected>SRM 10-Point (Indian)</option>
             </select>
           </div>
           <button id="add-row-btn" class="btn btn-secondary btn-sm">+ Add Subject</button>
@@ -255,6 +255,6 @@
     </div>
   </footer>
 
-  <script type="module" src="app.js"></script>
+  <script type="module" src="src/app.js"></script>
 </body>
 </html>

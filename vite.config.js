@@ -10,4 +10,12 @@ export default defineConfig({
     // This app relies on modern APIs (Workers, Canvas, Tesseract.js).
     target: 'es2022',
   },
+  esbuild: {
+    target: 'es2022',
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'es2022',
+    },
+  },
 });

@@ -4,7 +4,7 @@
  * Handles rendering, inline editing, validation, row management, and change notifications.
  */
 
-import { getGradePoints, getAvailableGrades, normalizeGradeSymbol } from './grade-mapper.js';
+import { getGradePoints, getAvailableGrades, normalizeGradeSymbol } from '../core/grade-mapper.js';
 
 // ─── Helper ────────────────────────────────────────────────────────────────────
 

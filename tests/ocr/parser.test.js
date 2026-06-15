@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { parseOcrText } from '../modules/parser.js';
+import { parseOcrText } from '../../src/ocr/parser.js';
 import {
   SAMPLE_BROWSER_LIKE_OCR_TEXT,
   SAMPLE_CLEAN_OCR_TEXT,
   SAMPLE_NOISY_OCR_TEXT,
   SAMPLE_PREPROCESSED_OCR_TEXT,
   SAMPLE_SUBJECTS,
-} from './fixtures/sample-results.js';
+} from '../fixtures/sample-results.js';
 
 function subjectKey(subject) {
   return subject.toUpperCase().trim();
