@@ -12,11 +12,10 @@ export function ScoreMeter({ value, size = 220 }: ScoreMeterProps) {
   const r = (size - stroke) / 2;
   const cx = size / 2;
   const cy = size / 2;
-  // 270deg arc
-  const startAngle = 135;
+  // 270deg arc with gap at the bottom
+  const startAngle = 225;
   const sweep = 270;
-  const circumference = 2 * Math.PI * r;
-  const arcLen = (sweep / 360) * circumference;
+  // We use pathLength="100" to let the browser normalize the path length perfectly.
 
   useEffect(() => {
     const start = performance.now();
@@ -33,7 +32,6 @@ export function ScoreMeter({ value, size = 220 }: ScoreMeterProps) {
   }, [value]);
 
   const pct = Math.min(1, Math.max(0, progress / 10));
-  const dash = arcLen * pct;
 
   const polar = (angle: number) => {
     const a = ((angle - 90) * Math.PI) / 180;
@@ -44,9 +42,9 @@ export function ScoreMeter({ value, size = 220 }: ScoreMeterProps) {
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="block">
+      <svg width={size} height={size} className="block overflow-visible">
         <defs>
-          <linearGradient id="meterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id="meterGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="var(--glow)" />
             <stop offset="100%" stopColor="var(--glow-2)" />
           </linearGradient>
@@ -66,10 +64,11 @@ export function ScoreMeter({ value, size = 220 }: ScoreMeterProps) {
           stroke="url(#meterGrad)"
           strokeWidth={stroke}
           strokeLinecap="round"
-          strokeDasharray={`${dash} ${circumference}`}
+          pathLength="100"
+          strokeDasharray={`${pct * 100} 100`}
           style={{ filter: "drop-shadow(0 0 8px var(--glow))" }}
         />
-        <circle cx={startPt.x} cy={startPt.y} r={3} fill="var(--muted-foreground)" />
+        <circle cx={startPt.x} cy={startPt.y} r={3} fill="var(--muted-foreground)" opacity={0.4} />
         <circle cx={endPt.x} cy={endPt.y} r={3} fill="var(--muted-foreground)" opacity={0.4} />
       </svg>
     </div>
@@ -81,8 +80,9 @@ function describeArc(cx: number, cy: number, r: number, startAngle: number, endA
     const a = ((angle - 90) * Math.PI) / 180;
     return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
   };
-  const start = polar(endAngle);
-  const end = polar(startAngle);
+  const start = polar(startAngle);
+  const end = polar(endAngle);
   const largeArc = endAngle - startAngle <= 180 ? "0" : "1";
-  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
+  // Clockwise sweep flag is 1
+  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`;
 }

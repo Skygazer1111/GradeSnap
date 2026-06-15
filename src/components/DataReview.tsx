@@ -79,9 +79,9 @@ export function DataReview({ subjects, setSubjects, onCalculate, onBack }: DataR
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mx-auto flex w-full max-w-3xl flex-col"
+      className="mx-auto flex w-full max-w-3xl flex-1 flex-col min-h-0"
     >
-      <div className="glass-strong flex flex-col overflow-hidden rounded-[2rem]">
+      <div className="glass-strong flex flex-1 flex-col overflow-hidden rounded-[2rem]">
         {/* header */}
         <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div className="flex min-w-0 items-center gap-3">
@@ -126,7 +126,7 @@ export function DataReview({ subjects, setSubjects, onCalculate, onBack }: DataR
         </div>
 
         {/* rows */}
-        <div className="max-h-[50vh] overflow-y-auto px-2 py-1.5 sm:px-3">
+        <div className="flex-1 overflow-y-auto px-2 py-1.5 sm:px-3 min-h-0">
           <AnimatePresence initial={false}>
             {visible.map((s, i) => (
               <motion.div

@@ -11,6 +11,8 @@ import { computeCgpa, type Subject, type CgpaSummary } from "@/lib/cgpa";
 import { runOcr, demoSubjects } from "@/lib/ocr";
 import { toast } from "sonner";
 
+import { cn } from "@/lib/utils";
+
 export function App() {
   const [stage, setStage] = useState<"idle" | "processing" | "review" | "result">("idle");
   const [ocrStage, setOcrStage] = useState(0);
@@ -71,11 +73,18 @@ export function App() {
   }, []);
 
   return (
-    <div className="relative min-h-screen px-4 pb-20 sm:px-6">
+    <div
+      className={cn(
+        "relative flex flex-col px-4 pb-6 sm:px-6",
+        stage === "review" ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
+      )}
+    >
       <AnimatedBackground />
-      <Header />
+      <div className="shrink-0">
+        <Header />
+      </div>
 
-      <main className="mx-auto mt-12 max-w-6xl sm:mt-20">
+      <main className="mx-auto mt-6 flex w-full max-w-6xl flex-1 flex-col sm:mt-10 min-h-0">
         <AnimatePresence mode="wait">
           {stage === "idle" && (
             <motion.div
@@ -83,7 +92,7 @@ export function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="flex flex-col items-center gap-12"
+              className="flex flex-col items-center gap-12 pb-10"
             >
               <Hero />
               <UploadCard onFile={handleFile} onDemo={handleDemo} />
@@ -107,6 +116,7 @@ export function App() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
+              className="flex flex-1 flex-col min-h-0 pb-4"
             >
               <DataReview
                 subjects={subjects}
@@ -123,6 +133,7 @@ export function App() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
+              className="pb-10"
             >
               <CgpaResult summary={summary} onReset={reset} />
             </motion.div>
