@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GradeSnap — AI CGPA Calculator</title>
+  <meta name="description" content="GradeSnap is an AI-powered CGPA calculator that extracts grades from your gradesheet image and computes your CGPA instantly. Free, private, and blazing fast." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📸</text></svg>" />
+</head>
+<body>
+
+  <!-- ═══════════════════ HEADER ═══════════════════ -->
+  <header id="app-header">
+    <div class="container header-inner">
+      <a href="#" class="logo">
+        <span class="logo-icon">📸</span>
+        <span>Grade<span class="logo-accent">Snap</span></span>
+      </a>
+      <button id="settings-btn" class="btn btn-icon" aria-label="Settings">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════ HERO SECTION ═══════════════════ -->
+  <main>
+    <section id="hero-section" class="section active">
+      <div class="container hero-content">
+        <span class="hero-badge">✨ AI-Powered</span>
+        <h1 class="hero-title">
+          Snap Your Grades,<br />
+          <span class="gradient-text">Get Your CGPA</span>
+        </h1>
+        <p class="hero-subtitle">
+          Upload a photo of your gradesheet and let AI extract your grades, calculate your CGPA, and deliver results — all in seconds.
+        </p>
+        <button id="get-started-btn" class="btn btn-primary btn-lg">
+          Get Started <span class="btn-arrow">→</span>
+        </button>
+        <div class="hero-stats">
+          <div class="stat">
+            <div class="stat-value">3</div>
+            <div class="stat-label">Simple Steps</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <div class="stat-value">&lt;10s</div>
+            <div class="stat-label">Processing</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <div class="stat-value">100%</div>
+            <div class="stat-label">Free &amp; Private</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ UPLOAD SECTION ═══════════════════ -->
+    <section id="upload-section" class="section">
+      <div class="container">
+        <div class="section-header">
+          <span class="step-badge">Step 1</span>
+          <h2>Upload Your Gradesheet</h2>
+        </div>
+
+        <div id="upload-zone" class="upload-zone glass-card">
+          <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" hidden />
+
+          <div id="upload-placeholder" class="upload-zone-content">
+            <div class="upload-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <p class="upload-title">Drag &amp; drop your gradesheet here</p>
+            <p class="upload-subtitle">or click to browse — supports JPEG, PNG, WebP</p>
+            <button id="browse-btn" class="btn btn-secondary btn-sm" type="button">Browse Files</button>
+          </div>
+
+          <div id="upload-preview" class="upload-preview" hidden>
+            <img id="image-preview" src="" alt="Gradesheet preview" />
+            <div id="file-info" class="file-info">
+              <span id="file-name"></span>
+              <span id="file-size"></span>
+            </div>
+            <div class="preview-actions">
+              <button id="change-image-btn" class="btn btn-secondary btn-sm" type="button">Change</button>
+              <button id="remove-image-btn" class="btn btn-danger btn-sm" type="button">Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="upload-actions" class="upload-actions" hidden>
+          <button id="extract-btn" class="btn btn-primary btn-lg">🔍 Extract Grades with AI</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ PROCESSING SECTION ═══════════════════ -->
+    <section id="processing-section" class="section">
+      <div class="container">
+        <div class="processing-card glass-card">
+          <div class="pulse-ring-container">
+            <div class="pulse-ring" style="animation-delay: 0s;"></div>
+            <div class="pulse-ring" style="animation-delay: 0.6s;"></div>
+            <div class="pulse-ring" style="animation-delay: 1.2s;"></div>
+            <div class="processing-icon">🤖</div>
+          </div>
+          <h2>AI is analyzing your gradesheet...</h2>
+          <div id="progress-steps" class="progress-steps">
+            <div class="progress-step active" data-step="1">
+              <span class="step-dot"></span>
+              <span>Reading image</span>
+            </div>
+            <div class="progress-step" data-step="2">
+              <span class="step-dot"></span>
+              <span>Extracting data</span>
+            </div>
+            <div class="progress-step" data-step="3">
+              <span class="step-dot"></span>
+              <span>Parsing grades</span>
+            </div>
+            <div class="progress-step" data-step="4">
+              <span class="step-dot"></span>
+              <span>Done!</span>
+            </div>
+          </div>
+          <p class="processing-eta">Usually takes 5–10 seconds</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ DATA SECTION ═══════════════════ -->
+    <section id="data-section" class="section">
+      <div class="container">
+        <div class="section-header">
+          <span class="step-badge">Step 2</span>
+          <h2>Review &amp; Edit Extracted Data</h2>
+        </div>
+
+        <div class="data-controls glass-card">
+          <div class="scale-selector">
+            <label for="grading-scale-select">Grading Scale:</label>
+            <select id="grading-scale-select">
+              <option value="10">10-Point (Indian)</option>
+              <option value="4">4-Point (US)</option>
+            </select>
+          </div>
+          <button id="add-row-btn" class="btn btn-secondary btn-sm">+ Add Subject</button>
+        </div>
+
+        <div class="table-container glass-card">
+          <table id="subjects-table">
+            <thead>
+              <tr>
+                <th class="col-num">#</th>
+                <th>Subject Name</th>
+                <th class="col-credits">Credits</th>
+                <th class="col-grade">Grade</th>
+                <th class="col-points">Points</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="subjects-tbody">
+              <!-- Rows populated by JS -->
+            </tbody>
+          </table>
+          <div id="table-empty" class="table-empty" hidden>
+            <p>No subjects found. Click "+ Add Subject" to get started.</p>
+          </div>
+        </div>
+
+        <div id="data-summary" class="data-summary">
+          <span id="subjects-count-preview">0 subjects</span>
+          <span id="total-credits-preview">0 credits</span>
+          <span id="validation-status">—</span>
+        </div>
+
+        <div class="section-actions">
+          <button id="back-to-upload-btn" class="btn btn-secondary btn-lg">← Back</button>
+          <button id="calculate-btn" class="btn btn-primary btn-lg" disabled>Calculate CGPA →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ RESULTS SECTION ═══════════════════ -->
+    <section id="results-section" class="section">
+      <div class="container">
+        <div class="section-header">
+          <span class="step-badge">Result</span>
+        </div>
+
+        <div id="result-card" class="result-card glass-card">
+          <div class="cgpa-display">
+            <div class="cgpa-value-wrapper">
+              <span id="cgpa-value" class="cgpa-value">0.00</span>
+              <span id="cgpa-max" class="cgpa-max">/ 10</span>
+            </div>
+            <span id="result-badge" class="result-badge"></span>
+          </div>
+
+          <div class="result-stats">
+            <div class="result-stat">
+              <div class="result-stat-value" id="total-credits">0</div>
+              <div class="result-stat-label">Total Credits</div>
+            </div>
+            <div class="result-stat">
+              <div class="result-stat-value" id="total-grade-points">0</div>
+              <div class="result-stat-label">Grade Points</div>
+            </div>
+            <div class="result-stat">
+              <div class="result-stat-value" id="result-subjects-count">0</div>
+              <div class="result-stat-label">Subjects</div>
+            </div>
+          </div>
+
+          <div id="grade-chart" class="grade-chart"></div>
+        </div>
+
+        <div class="export-actions">
+          <button id="copy-btn" class="btn btn-secondary">📋 Copy</button>
+          <button id="export-png-btn" class="btn btn-secondary">📥 Export PNG</button>
+          <button id="share-btn" class="btn btn-secondary">🔗 Share</button>
+        </div>
+
+        <div class="section-actions">
+          <button id="edit-data-btn" class="btn btn-secondary btn-lg">✏️ Edit Data</button>
+          <button id="new-calc-btn" class="btn btn-primary btn-lg">🔄 New Calculation</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═══════════════════ API KEY MODAL ═══════════════════ -->
+  <div id="api-key-modal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content glass-card">
+      <h3>🔑 Enter Your Gemini API Key</h3>
+      <p>Your API key is stored <strong>locally in your browser</strong> and is never sent to any server other than Google's Gemini API.</p>
+      <div class="input-group">
+        <input type="password" id="api-key-input" placeholder="Paste your Gemini API key…" autocomplete="off" />
+        <button id="toggle-key-visibility" class="btn btn-icon" type="button" aria-label="Toggle key visibility">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
+      <p class="helper-text">Get a free API key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com</a> — no credit card needed!</p>
+      <div class="modal-actions">
+        <button id="skip-api-key-btn" class="btn btn-secondary">Use Demo Data</button>
+        <button id="save-api-key-btn" class="btn btn-primary">Save &amp; Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ TOAST CONTAINER ═══════════════════ -->
+  <div id="toast-container"></div>
+
+  <!-- ═══════════════════ FOOTER ═══════════════════ -->
+  <footer>
+    <div class="container">
+      <p>Built with ❤️ and AI &bull; GradeSnap &copy; 2026</p>
+      <p class="footer-note">Your data never leaves your browser. 100% private.</p>
+    </div>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
