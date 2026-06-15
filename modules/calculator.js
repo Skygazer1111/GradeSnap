@@ -1,15 +1,15 @@
 /**
  * @module calculator
- * @description CGPA calculation engine for GradeSnap AI CGPA Calculator.
- * Computes CGPA, grade distribution, performance levels, and per-subject breakdowns.
+ * @description CGPA calculation engine using SRM credit-weighted formula.
  */
 
-import { getGradePoints, GRADING_SCALES } from './parser.js';
+import {
+  GRADING_SCALES,
+  computeCreditWeightedCgpa,
+  mapSubjectsForCalculation,
+  resolveGrade,
+} from './grade-mapper.js';
 
-/**
- * Performance level thresholds for each grading scale.
- * @constant {Object.<string, Array<{min: number, level: string}>>}
- */
 const PERFORMANCE_THRESHOLDS = {
   '10': [
     { min: 9.0, level: 'distinction' },
@@ -25,10 +25,6 @@ const PERFORMANCE_THRESHOLDS = {
   ],
 };
 
-/**
- * Human-readable labels for each performance level.
- * @constant {Object.<string, string>}
- */
 const PERFORMANCE_LABELS = {
   distinction: 'Outstanding! 🏆',
   first: 'First Class 🌟',
@@ -37,10 +33,6 @@ const PERFORMANCE_LABELS = {
   fail: 'Needs Improvement 📚',
 };
 
-/**
- * CSS badge class names for each performance level.
- * @constant {Object.<string, string>}
- */
 const PERFORMANCE_BADGE_CLASSES = {
   distinction: 'badge-distinction',
   first: 'badge-first',
@@ -49,119 +41,70 @@ const PERFORMANCE_BADGE_CLASSES = {
   fail: 'badge-fail',
 };
 
-/**
- * Determines the performance level based on CGPA, scale thresholds, and whether
- * any subject has a failing grade.
- *
- * @param {number} cgpa - The calculated CGPA.
- * @param {string} scaleId - The grading scale identifier ('10' or '4').
- * @param {boolean} hasFail - Whether any subject has an 'F' grade.
- * @returns {string} The performance level string.
- */
 function determinePerformanceLevel(cgpa, scaleId, hasFail) {
-  // If any subject has grade 'F', override to fail
-  if (hasFail) {
-    return 'fail';
-  }
+  if (hasFail) return 'fail';
 
   const thresholds = PERFORMANCE_THRESHOLDS[scaleId];
-  if (!thresholds) {
-    return 'fail';
-  }
+  if (!thresholds) return 'fail';
 
   for (const threshold of thresholds) {
-    if (cgpa >= threshold.min) {
-      return threshold.level;
-    }
+    if (cgpa >= threshold.min) return threshold.level;
   }
 
   return 'fail';
 }
 
 /**
- * Calculates the CGPA and comprehensive result breakdown from a list of subjects.
+ * CGPA = Σ(grade point × credits) / Σ(credits)
+ * Zero-credit subjects are excluded from both numerator and denominator.
  *
- * @param {Array<{subject: string, credits: number, grade: string}>} subjects
- *   The array of subject entries. Each must have subject name, credits, and grade.
- * @param {string} scaleId - The grading scale identifier ('10' for Indian, '4' for US).
- * @returns {{
- *   cgpa: number,
- *   totalCredits: number,
- *   totalCreditPoints: number,
- *   subjectsCount: number,
- *   gradeDistribution: Object.<string, number>,
- *   performanceLevel: ('distinction'|'first'|'second'|'pass'|'fail'),
- *   maxPoints: number,
- *   perSubject: Array<{subject: string, credits: number, grade: string, gradePoints: number, creditPoints: number}>
- * }} The complete CGPA result object.
- *
- * @example
- * const subjects = [
- *   { subject: 'Math', credits: 4, grade: 'A+' },
- *   { subject: 'Physics', credits: 3, grade: 'A' },
- * ];
- * const result = calculateCGPA(subjects, '10');
- * // result.cgpa → 8.57
- * // result.performanceLevel → 'first'
+ * @param {Array<{subject: string, credits: number, grade: string, flagged?: boolean}>} subjects
+ * @param {string} scaleId
  */
 export function calculateCGPA(subjects, scaleId) {
   const scale = GRADING_SCALES[scaleId];
   const maxPoints = scale ? scale.maxPoints : 0;
+  const mapped = mapSubjectsForCalculation(subjects, scaleId);
 
-  // Build per-subject breakdown
-  const perSubject = subjects.map((entry) => {
-    const gradePointValue = getGradePoints(entry.grade, scaleId);
-    const resolvedGradePoints = gradePointValue !== null ? gradePointValue : 0;
-    const creditPoints = entry.credits * resolvedGradePoints;
+  const perSubject = mapped.map((item) => ({
+    subject: item.subject,
+    credits: item.credits,
+    grade: item.grade,
+    gradePoints: item.recognized ? item.gradePoints : null,
+    creditPoints: item.excluded || !item.recognized ? 0 : item.qualityPoints,
+    included: !item.excluded && item.recognized,
+    recognized: item.recognized,
+    excludedReason: item.excluded ? item.excludedReason : null,
+  }));
 
-    return {
-      subject: entry.subject,
-      credits: entry.credits,
-      grade: entry.grade,
-      gradePoints: resolvedGradePoints,
-      creditPoints: creditPoints,
-    };
-  });
+  const included = perSubject.filter((item) => item.included);
 
-  // Aggregate totals
   let totalCredits = 0;
-  let totalCreditPoints = 0;
+  let totalQualityPoints = 0;
 
-  for (const item of perSubject) {
+  for (const item of included) {
     totalCredits += item.credits;
-    totalCreditPoints += item.creditPoints;
+    totalQualityPoints += item.creditPoints;
   }
 
-  // Calculate CGPA, guard against division by zero
-  const cgpa =
-    totalCredits > 0
-      ? Math.round((totalCreditPoints / totalCredits) * 100) / 100
-      : 0;
+  const cgpa = computeCreditWeightedCgpa(totalQualityPoints, totalCredits);
 
-  // Compute grade distribution
   const gradeDistribution = {};
-  for (const item of perSubject) {
-    const grade = item.grade;
-    if (grade in gradeDistribution) {
-      gradeDistribution[grade] += 1;
-    } else {
-      gradeDistribution[grade] = 1;
-    }
+  for (const item of included) {
+    gradeDistribution[item.grade] = (gradeDistribution[item.grade] || 0) + 1;
   }
 
-  // Check for any failing grade
-  const hasFail = subjects.some(
-    (entry) => entry.grade.toUpperCase().trim() === 'F'
-  );
-
-  // Determine performance level
+  const hasFail = mapped.some((item) => !item.excluded && item.isFail);
   const performanceLevel = determinePerformanceLevel(cgpa, scaleId, hasFail);
 
   return {
     cgpa,
     totalCredits,
-    totalCreditPoints,
+    totalCreditPoints: totalQualityPoints,
+    totalQualityPoints,
     subjectsCount: subjects.length,
+    includedSubjectsCount: included.length,
+    excludedSubjectsCount: subjects.length - included.length,
     gradeDistribution,
     performanceLevel,
     maxPoints,
@@ -169,54 +112,20 @@ export function calculateCGPA(subjects, scaleId) {
   };
 }
 
-/**
- * Returns a human-readable label (with emoji) for a given performance level.
- *
- * @param {string} level - The performance level ('distinction', 'first', 'second', 'pass', 'fail').
- * @returns {string} The human-readable label with emoji.
- *
- * @example
- * getPerformanceLabel('distinction'); // Returns 'Outstanding! 🏆'
- * getPerformanceLabel('fail');        // Returns 'Needs Improvement 📚'
- */
 export function getPerformanceLabel(level) {
   return PERFORMANCE_LABELS[level] || PERFORMANCE_LABELS.fail;
 }
 
-/**
- * Returns the CSS badge class name for a given performance level.
- *
- * @param {string} level - The performance level ('distinction', 'first', 'second', 'pass', 'fail').
- * @returns {string} The CSS class name for styling the badge.
- *
- * @example
- * getPerformanceBadgeClass('distinction'); // Returns 'badge-distinction'
- * getPerformanceBadgeClass('first');       // Returns 'badge-first'
- */
 export function getPerformanceBadgeClass(level) {
   return PERFORMANCE_BADGE_CLASSES[level] || PERFORMANCE_BADGE_CLASSES.fail;
 }
 
-/**
- * Returns the result mood for celebration / neutral / disappointment screens.
- *
- * @param {string} level - Performance level from calculateCGPA.
- * @returns {'celebration'|'neutral'|'disappointment'}
- */
 export function getResultMood(level) {
   if (['distinction', 'first'].includes(level)) return 'celebration';
   if (level === 'fail') return 'disappointment';
   return 'neutral';
 }
 
-/**
- * Returns headline content for the result mood screen.
- *
- * @param {string} level
- * @param {number} cgpa
- * @param {number} maxPoints
- * @returns {{mood: string, emoji: string, title: string, message: string}}
- */
 export function getResultMoodContent(level, cgpa, maxPoints) {
   const mood = getResultMood(level);
   const score = cgpa.toFixed(2);
@@ -241,3 +150,5 @@ export function getResultMoodContent(level, cgpa, maxPoints) {
 
   return { mood, ...content[mood] };
 }
+
+export { resolveGrade };

@@ -69,3 +69,50 @@ May - 2026
 
 export const EXPECTED_CGPA_10_POINT = 9.88;
 export const EXPECTED_MOOD = 'celebration';
+
+/** SampleResults2.jpeg — May 2026 semester (ERP, mixed A+/O grades). */
+export const SAMPLE2_SUBJECTS = [
+  { subject: 'PROBABILITY AND QUEUEING THEORY', credits: 4, grade: 'O', flagged: false },
+  { subject: 'DESIGN AND ANALYSIS OF ALGORITHMS', credits: 4, grade: 'A+', flagged: false },
+  { subject: 'DATABASE MANAGEMENT SYSTEMS', credits: 4, grade: 'A+', flagged: false },
+  { subject: 'ARTIFICIAL INTELLIGENCE', credits: 3, grade: 'O', flagged: false },
+  { subject: 'ERP SOLUTION FOR DIGITAL ENTERPRISES', credits: 3, grade: 'A+', flagged: false },
+  { subject: 'DESIGN THINKING AND METHODOLOGY', credits: 3, grade: 'O', flagged: false },
+  { subject: 'SOCIAL ENGINEERING', credits: 2, grade: 'O', flagged: false },
+  { subject: 'ANALYTICAL AND LOGICAL THINKING SKILLS', credits: 0, grade: 'O', flagged: true },
+  { subject: 'FINANCIAL TECHNOLOGIES FOUNDATIONS', credits: 3, grade: 'A+', flagged: false },
+];
+
+export const SAMPLE2_CLEAN_OCR_TEXT = `S.No. SEMESTER COURSE CODE COURSE DESCRIPTION CREDIT GRADE RESULT
+May - 2026
+1 4 21MAB204T PROBABILITY AND QUEUEING THEORY 4 O PASS
+2 4 21CSC204J DESIGN AND ANALYSIS OF ALGORITHMS 4 A+ PASS
+3 4 21CSC205P DATABASE MANAGEMENT SYSTEMS 4 A+ PASS
+4 4 21CSC206T ARTIFICIAL INTELLIGENCE 3 O PASS
+5 4 21IPE312P ERP SOLUTION FOR DIGITAL ENTERPRISES 3 A+ PASS
+6 4 21DCS201P DESIGN THINKING AND METHODOLOGY 3 O PASS
+7 4 21PDH209T SOCIAL ENGINEERING 2 O PASS
+8 4 21PDM301L ANALYTICAL AND LOGICAL THINKING SKILLS 0 O PASS
+9 4 21HCSF007 FINANCIAL TECHNOLOGIES FOUNDATIONS 3 A+ PASS`;
+
+/** Browser-Tesseract noisy OCR text for SampleResults2 — simulates real-world browser pipeline noise. */
+export const SAMPLE2_NOISY_BROWSER_OCR_TEXT = `S.No.       SEMESTER      code          COURSE DESCRIPTION                                                        CREDIT                   GRADE       RESULT
+May - 2026
+1             4                   21MAB204T        PROBABILITY AND QUEUEING THEORY                                               4                              O              PASS
+2            4                  21CSC204)        DESiGN AND ANALYSIS oF ALGORITHMS                                          4                            A+              PASS
+3           4                21CSC205P        DATABASE MANAGEMENT SYSTEMS                                           4                          A+            PASS
+4           4                 21CSC206T       ARTIFICIAL INTELLIGENCE                                                      3                          O            PASS
+5           4                21IPE312P        ERP SOLUTION FOR DIGITAL ENTERPRISES                                                   3                          A+           PASS
+6            4                 21DCS201P        DESIGN THINKING AND METHODOLOGY                                          3                            O             PASS
+7           4                21PDH209T       SOCIAL ENGINEERING                                                          2                          O            PASS
+8             4                   21PDM301L         ANALYTICAL AND LOGICAL THINKING SKILLS                                         [0]                               O               PASS
+9           4                21HCSF007       FINANCIAL TECHNOLOGIES FOUNDATIONS                                    3                          A+            PASS`;
+
+export const EXPECTED_SAMPLE2_CGPA = 9.46;
+export const EXPECTED_SAMPLE2_MOOD = 'celebration';
+
+/** @deprecated Use SAMPLE2_SUBJECTS */
+export const SRM_USER_SUBJECTS = SAMPLE2_SUBJECTS;
+export const SRM_USER_EXPECTED_CGPA = EXPECTED_SAMPLE2_CGPA;
+export const SRM_USER_TOTAL_QUALITY_POINTS = 246;
+export const SRM_USER_TOTAL_CREDITS = 26;

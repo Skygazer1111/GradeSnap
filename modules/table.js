@@ -4,7 +4,7 @@
  * Handles rendering, inline editing, validation, row management, and change notifications.
  */
 
-import { getGradePoints, getAvailableGrades, GRADING_SCALES } from './parser.js';
+import { getGradePoints, getAvailableGrades, normalizeGradeSymbol } from './grade-mapper.js';
 
 // ─── Helper ────────────────────────────────────────────────────────────────────
 
@@ -121,7 +121,11 @@ class DataTable {
       gradeSelect.setAttribute('data-field', 'grade');
       gradeSelect.setAttribute('aria-label', `Grade for row ${index + 1}`);
 
-      // Check if current grade is in the available grades
+      const canonicalGrade = normalizeGradeSymbol(item.grade);
+      if (canonicalGrade && canonicalGrade !== item.grade && availableGrades.includes(canonicalGrade)) {
+        item.grade = canonicalGrade;
+      }
+
       const currentGradeInScale = availableGrades.includes(item.grade);
 
       // If not in scale, add it as first option with warning
@@ -233,22 +237,23 @@ class DataTable {
     this.data.forEach((item, index) => {
       const rowNum = index + 1;
 
-      // Subject name empty
       if (!item.subject || item.subject.trim() === '') {
         errors.push(`Subject name is required for row ${rowNum}`);
       }
 
-      // Credits invalid
-      if (item.credits <= 0) {
+      const isZeroCreditAudit = item.flagged && item.credits <= 0;
+
+      if (item.credits <= 0 && !isZeroCreditAudit) {
         const name = item.subject.trim() || `Row ${rowNum}`;
         errors.push(`Credits must be > 0 for row ${rowNum} (${name})`);
       }
 
-      // Grade unrecognized
-      const points = getGradePoints(item.grade, this.scaleId);
-      if (points === null || points === undefined) {
-        const name = item.subject.trim() || `Row ${rowNum}`;
-        errors.push(`Unrecognized grade "${item.grade}" for ${name}`);
+      if (!isZeroCreditAudit) {
+        const points = getGradePoints(item.grade, this.scaleId);
+        if (points === null || points === undefined) {
+          const name = item.subject.trim() || `Row ${rowNum}`;
+          errors.push(`Unrecognized grade "${item.grade}" for ${name}`);
+        }
       }
     });
 

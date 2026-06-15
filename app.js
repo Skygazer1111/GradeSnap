@@ -294,8 +294,12 @@ async function processImage() {
     updateProgressStep(2, 'done');
     updateProgressStep(3, 'active');
 
+    console.log('[GradeSnap DEBUG] Raw OCR text:\n', rawText);
+
     await delay(200);
     const parsedData = parseOcrText(rawText);
+
+    console.log('[GradeSnap DEBUG] Parsed subjects:', parsedData.map(r => ({ s: r.subject, c: r.credits, g: r.grade, f: r.flagged })));
 
     updateProgressStep(3, 'done');
     updateProgressStep(4, 'active');
@@ -312,9 +316,16 @@ async function processImage() {
 
     showSection('data-section');
     const flaggedCount = parsedData.filter((row) => row.flagged).length;
-    const reviewHint = flaggedCount > 0
-      ? `Extracted ${parsedData.length} subjects. ${flaggedCount} row(s) need review.`
-      : `Extracted ${parsedData.length} subjects — review and edit if needed.`;
+    const rectifiedCount = parsedData.filter((row) => row.rectified).length;
+    let reviewHint = `Extracted ${parsedData.length} subjects`;
+    if (rectifiedCount > 0) {
+      reviewHint += ` (${rectifiedCount} OCR fix${rectifiedCount === 1 ? '' : 'es'} applied)`;
+    }
+    if (flaggedCount > 0) {
+      reviewHint += `. ${flaggedCount} row(s) need review.`;
+    } else {
+      reviewHint += ' — review and edit if needed.';
+    }
     showToast(reviewHint, flaggedCount > 0 ? 'warning' : 'success');
   } catch (err) {
     console.error('[GradeSnap] Processing error:', err);

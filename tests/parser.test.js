@@ -53,6 +53,51 @@ describe('parseOcrText', () => {
     assertSubjectsMatch(parsed, SAMPLE_SUBJECTS);
   });
 
+  it('keeps credits attached to the grade column, not course codes', () => {
+    const parsed = parseOcrText(
+      '4 4 21CSC206T ARTIFICIAL INTELLIGENCE 3 O PASS'
+    );
+
+    const ai = parsed.find((row) => row.subject.includes('ARTIFICIAL INTELLIGENCE'));
+    expect(ai).toBeTruthy();
+    expect(ai.credits).toBe(3);
+    expect(ai.grade).toBe('O');
+  });
+
+  it('does not treat OCR [o] in the grade column as zero credits', () => {
+    const parsed = parseOcrText(
+      '1 4 21MAB204T PROBABILITY AND QUEUEING THEORY 4 [o] PASS'
+    );
+    const row = parsed.find((r) => r.subject.includes('PROBABILITY'));
+    expect(row?.credits).toBe(4);
+    expect(row?.grade).toBe('O');
+    expect(row?.flagged).toBe(false);
+  });
+
+  it('keeps audit courses at zero credits when OCR uses [o] for both columns', () => {
+    const parsed = parseOcrText(
+      '8 4 21PDM301L ANALYTICAL AND LOGICAL THINKING SKILLS [o] [o] PASS'
+    );
+    const row = parsed.find((r) => r.subject.includes('ANALYTICAL'));
+    expect(row?.credits).toBe(0);
+    expect(row?.grade).toBe('O');
+    expect(row?.flagged).toBe(true);
+  });
+
+  it('parses SampleResults.png OCR text with [0] grade tokens as credits intact', () => {
+    const parsed = parseOcrText(`EE  ——————
+1               4                      2IMAB204T         PROBABILITY AND QUEUEING THEORY                                                     4                                  Oo                PASS
+3              4                      21CSC205P          DATABASE MANAGEMENT SYSTEMS                                                        4                                  [0]                PASS
+4               4                       21CSC206T          ARTIFICIAL INTELLIGENCE                                                                          3                                    [0]                 PASS
+7                4                         21PDH209T           SOCIAL ENGINEERING                                                                                       2                                       [0]                   PASS
+8               4                        21PDM301L           ANALYTICAL AND LOGICAL THINKING SKILLS                                                 [0]                                     [0]                  PASS`);
+
+    expect(parsed.find((r) => r.subject.includes('DATABASE'))?.credits).toBe(4);
+    expect(parsed.find((r) => r.subject.includes('ARTIFICIAL'))?.credits).toBe(3);
+    expect(parsed.find((r) => r.subject.includes('SOCIAL'))?.credits).toBe(2);
+    expect(parsed.find((r) => r.subject.includes('ANALYTICAL'))?.credits).toBe(0);
+  });
+
   it('flags zero-credit rows for manual review', () => {
     const parsed = parseOcrText(SAMPLE_CLEAN_OCR_TEXT);
     const zeroCredit = parsed.find((row) =>

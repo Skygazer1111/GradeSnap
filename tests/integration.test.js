@@ -38,6 +38,7 @@ describe('sample image integration', () => {
           `Expected OCR pipeline to detect: ${expectedRow.subject}\nOCR text:\n${ocrText}`
         ).toBeTruthy();
         expect(match.grade).toBe(expectedRow.grade);
+        expect(match.credits).toBe(expectedRow.credits);
       }
 
       const result = calculateCGPA(parsed, '10');

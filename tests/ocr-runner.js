@@ -3,43 +3,36 @@
  */
 
 import sharp from 'sharp';
+import {
+  getOcrTargetSize,
+  preprocessGrayscale,
+} from '../modules/image-preprocess.js';
 
 /**
- * Prepares a gradesheet image for OCR (resize, flatten alpha, invert dark UI).
+ * Prepares a gradesheet image for OCR.
  *
  * @param {string} inputPath - Source image path.
- * @returns {Promise<Buffer>} PNG buffer for Tesseract.
+ * @returns {Promise<Buffer>} JPEG buffer for Tesseract.
  */
 export async function preprocessGradesheetImage(inputPath) {
   const metadata = await sharp(inputPath).metadata();
-  const width = Math.min(Math.max(metadata.width || 1200, 1200), 2400);
+  const sourceWidth = metadata.width || 1200;
+  const sourceHeight = metadata.height || 800;
+  const { width, height } = getOcrTargetSize(sourceWidth, sourceHeight);
 
   const { data, info } = await sharp(inputPath)
     .flatten({ background: '#000000' })
-    .resize({ width, withoutEnlargement: false })
+    .resize({ width, height, kernel: sharp.kernel.lanczos3 })
     .grayscale()
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  let brightnessSum = 0;
-  for (let i = 0; i < data.length; i++) {
-    brightnessSum += data[i];
-  }
-  const avgBrightness = brightnessSum / data.length;
-  const invert = avgBrightness < 120;
+  const processed = preprocessGrayscale(new Uint8Array(data), info.width, info.height);
 
-  const processed = Buffer.from(data);
-  for (let i = 0; i < processed.length; i++) {
-    let gray = processed[i];
-    if (invert) gray = 255 - gray;
-    const contrast = Math.min(255, Math.max(0, (gray - 128) * 1.6 + 128));
-    processed[i] = contrast > 145 ? 255 : contrast < 95 ? 0 : contrast;
-  }
-
-  return sharp(processed, {
+  return sharp(Buffer.from(processed), {
     raw: { width: info.width, height: info.height, channels: 1 },
   })
-    .png()
+    .jpeg({ quality: 95 })
     .toBuffer();
 }
 

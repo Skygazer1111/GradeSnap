@@ -3,56 +3,37 @@
  * @description Parses OCR text from university gradesheets into editable subject rows.
  */
 
-export const GRADING_SCALES = {
-  '10': {
-    name: '10-Point (Indian)',
-    maxPoints: 10,
-    grades: {
-      'O': 10,
-      'A+': 9,
-      'A': 8,
-      'B+': 7,
-      'B': 6,
-      'C': 5,
-      'P': 4,
-      'F': 0,
-      'S': 10,
-      'D': 4,
-      'E': 0,
-    },
-  },
-  '4': {
-    name: '4-Point (US)',
-    maxPoints: 4,
-    grades: {
-      'A+': 4.0,
-      'A': 4.0,
-      'A-': 3.7,
-      'B+': 3.3,
-      'B': 3.0,
-      'B-': 2.7,
-      'C+': 2.3,
-      'C': 2.0,
-      'C-': 1.7,
-      'D+': 1.3,
-      'D': 1.0,
-      'D-': 0.7,
-      'F': 0.0,
-    },
-  },
-};
+import {
+  GRADING_SCALES,
+  getAvailableGrades,
+  getGradePoints,
+  normalizeGradeSymbol,
+} from './grade-mapper.js';
+import {
+  applyOcrGradeCreditFixes,
+  COURSE_CODE_PATTERN,
+  COURSE_CODE_REGEX,
+  extractCreditGradePair,
+  isGradesheetDateNoise,
+  isGradesheetHeaderNoise,
+  normalizeOcrTextBlock,
+  parseCreditValue,
+  stripGradesheetDatePrefix,
+} from './ocr-normalize.js';
+import { rectifySubjects } from './rectifier.js';
 
-const GRADE_TOKENS = 'A\\+|A-|B\\+|B-|C\\+|C-|D\\+|D-|O|A|B|C|D|P|S|E|F|\\[e\\]|\\[o\\]|Oo';
-const COURSE_CODE_PATTERN = '2[1Iil][A-Za-z]{3,4}\\d{3}[A-Za-z)]?';
-const COURSE_CODE_REGEX = new RegExp(COURSE_CODE_PATTERN, 'i');
+export { GRADING_SCALES, getAvailableGrades, getGradePoints };
+
+const GRADE_TAIL_TOKENS = 'A\\+|A-|B\\+|B-|C\\+|C-|D\\+|D-|Oo|\\[e\\]|\\[o\\]|\\[eo\\]|\\[lo\\]|\\(e\\]|\\(e\\}|O|A|B|C|D|F';
+const GRADE_TOKENS = `${GRADE_TAIL_TOKENS}|P|S|E`;
 
 const FULL_ROW_REGEX = new RegExp(
-  String.raw`^\s*\d+\s+\d+\s+${COURSE_CODE_PATTERN}\s+(.+?)\s+(\d{1,2})\s+(${GRADE_TOKENS})\s*(?:PASS|FAIL)?\s*$`,
+  String.raw`^\s*\d+\s+\d+\s+${COURSE_CODE_PATTERN}\s+(.+?)\s+(\d{1,2}|\[0\])\s+(${GRADE_TOKENS})\s*(?:PASS|FAIL)?\s*$`,
   'i'
 );
 
 const COURSE_ROW_REGEX = new RegExp(
-  String.raw`${COURSE_CODE_PATTERN}\s+(.+?)\s+(\d{1,2}|\[o\]|0)\s+(${GRADE_TOKENS}|Oo)\s*(?:PASS|FAIL)?`,
+  String.raw`${COURSE_CODE_PATTERN}\s+(.+?)\s+(\d{1,2}|\[0\]|0)\s+(${GRADE_TAIL_TOKENS}|Oo|\[0\])\s*(?:PASS|FAIL)?`,
   'gi'
 );
 
@@ -86,26 +67,35 @@ function generateId() {
 }
 
 function normalizeGrade(rawGrade) {
-  const cleaned = rawGrade.trim().toUpperCase();
-  if (cleaned === 'OO' || cleaned === '0O' || cleaned === '[E]' || cleaned === '[O]' || cleaned === '0') {
-    return 'O';
-  }
-  return cleaned;
+  return normalizeGradeSymbol(rawGrade);
 }
 
 function parseCredits(rawCredits) {
-  if (rawCredits === undefined || rawCredits === null) return null;
-  const value = String(rawCredits).trim().toLowerCase();
-  if (value === '[o]' || value === 'o') return 0;
-  const num = Number(value);
-  return Number.isNaN(num) ? null : Math.round(num);
+  return parseCreditValue(rawCredits);
+}
+
+function extractCreditGradeTail(beforePass) {
+  const pair = extractCreditGradePair(beforePass);
+  if (!pair) return null;
+
+  const idx = beforePass.search(
+    new RegExp(`\\b${pair.credits === 0 ? '\\[0\\]' : pair.credits}\\s+`, 'i')
+  );
+
+  return {
+    credits: pair.credits,
+    grade: normalizeGrade(pair.grade),
+    beforeCredits: idx >= 0 ? beforePass.slice(0, idx).trim() : beforePass,
+  };
 }
 
 function normalizeEntry(entry) {
   if (!entry || typeof entry !== 'object') return null;
 
   const subject = typeof entry.subject === 'string' ? entry.subject.trim() : '';
-  if (!subject) return null;
+  if (!subject || isGradesheetDateNoise(subject) || isGradesheetHeaderNoise(subject)) {
+    return null;
+  }
 
   let credits = entry.credits;
   let flagged = Boolean(entry.flagged);
@@ -136,16 +126,24 @@ function normalizeEntry(entry) {
 }
 
 function cleanSubjectName(subject) {
-  const upperPhrase = subject.match(/[A-Z][A-Z\s&]{8,}/);
-  const base = upperPhrase ? upperPhrase[0] : subject;
+  // Find all letter+space phrases ≥9 chars (case-insensitive to handle OCR noise
+  // like "DESiGN AND ANALYSIS oF ALGORITHMS"), then pick the longest one.
+  const allPhrases = [...subject.matchAll(/[A-Za-z][A-Za-z\s&]{8,}/g)];
+  const best = allPhrases.length > 0
+    ? allPhrases.reduce((a, b) => a[0].length >= b[0].length ? a : b)[0]
+    : subject;
 
-  return base
+  return best
+    .toUpperCase()
     .replace(/^\d+[\).\s-]+/, '')
     .replace(new RegExp(COURSE_CODE_PATTERN, 'gi'), '')
     .replace(/[()[\]{}]/g, ' ')
     .replace(/\bPASS\b|\bFAIL\b/gi, '')
     .replace(/[|·•]+/g, ' ')
     .replace(/\s+/g, ' ')
+    .trim()
+    // Strip trailing short tokens that are grade/credit noise (e.g. "... PA O" or "... 3 A+")
+    .replace(/(?:\s+(?:PA|OO|O|A\+?|B\+?|C\+?|D\+?|F|U|RA|\d{1,2})(?=\s|$)){1,3}\s*$/i, '')
     .trim();
 }
 
@@ -160,14 +158,9 @@ function isHeaderLine(line) {
 }
 
 function normalizeOcrLine(line) {
-  return line
-    .replace(/\[o\]/gi, ' 0 ')
-    .replace(/\[0\]/gi, ' 0 ')
-    .replace(/\[e\]/gi, ' O ')
-    .replace(/\boO\b/g, ' O ')
-    .replace(/\bOo\b/g, ' O ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const stripped = stripGradesheetDatePrefix(line);
+  if (isGradesheetHeaderNoise(stripped)) return '';
+  return applyOcrGradeCreditFixes(stripped).replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -178,28 +171,18 @@ function parsePassAnchoredRows(lines) {
 
   for (const rawLine of lines) {
     const line = normalizeOcrLine(rawLine);
+    if (!line) continue;
     if (!/\bPASS\b|\bFAIL\b/i.test(line)) continue;
 
     const passMatch = line.match(/\b(PASS|FAIL)\b/i);
     if (!passMatch || passMatch.index === undefined) continue;
 
     const beforePass = line.slice(0, passMatch.index).trim();
-    const gradeMatch = beforePass.match(
-      new RegExp(`\\b(${GRADE_TOKENS}|Oo)\\s*$`, 'i')
-    );
-    if (!gradeMatch || gradeMatch.index === undefined) continue;
+    const tail = extractCreditGradeTail(beforePass);
+    if (!tail) continue;
 
-    const grade = normalizeGrade(gradeMatch[1]);
-    const beforeGrade = beforePass.slice(0, gradeMatch.index).trim();
-
-    const creditMatch = beforeGrade.match(/(\d{1,2}|0)\s*$/);
-    let credits = null;
-    let beforeCredits = beforeGrade;
-
-    if (creditMatch) {
-      credits = parseCredits(creditMatch[1]);
-      beforeCredits = beforeGrade.slice(0, creditMatch.index).trim();
-    }
+    const { credits, grade, beforeCredits } = tail;
+    let flagged = false;
 
     const codeMatch = beforeCredits.match(COURSE_CODE_REGEX);
     let subject = beforeCredits;
@@ -222,22 +205,9 @@ function parsePassAnchoredRows(lines) {
 
     if (subject.length < 4) continue;
 
-    let flagged = credits === null;
-    const creditGradeMatch = line.match(
-      new RegExp(
-        `${subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+.*?(\\d{1,2})\\s+(${GRADE_TOKENS}|Oo)\\s+PASS`,
-        'i'
-      )
-    );
-
-    if (creditGradeMatch) {
-      credits = parseCredits(creditGradeMatch[1]);
-      flagged = false;
-    }
-
     parsed.push({
       subject,
-      credits: credits ?? 0,
+      credits,
       grade,
       flagged,
     });
@@ -249,14 +219,15 @@ function parsePassAnchoredRows(lines) {
 function parseStructuredRows(lines) {
   const parsed = [];
 
-  for (const line of lines) {
+  for (const rawLine of lines) {
+    const line = normalizeOcrLine(rawLine);
     if (isHeaderLine(line)) continue;
 
     const fullMatch = line.match(FULL_ROW_REGEX);
     if (fullMatch) {
       parsed.push({
         subject: cleanSubjectName(fullMatch[1]),
-        credits: Number(fullMatch[2]),
+        credits: parseCredits(fullMatch[2]) ?? 0,
         grade: normalizeGrade(fullMatch[3]),
       });
     }
@@ -347,8 +318,10 @@ function dedupeSubjects(entries) {
 function scoreEntry(entry) {
   let score = 0;
   if (entry.subject.length >= 8) score += 2;
-  if (entry.credits !== null && entry.credits !== undefined) score += 1;
-  if (!entry.flagged) score += 1;
+  if (entry.credits > 0) score += 5;
+  else if (entry.credits === 0 && entry.flagged) score += 1;
+  if (entry.grade && entry.grade !== 'P') score += 2;
+  if (!entry.flagged) score += 2;
   return score;
 }
 
@@ -356,9 +329,20 @@ function pickBestEntries(groups) {
   const bySubject = new Map();
 
   for (const entry of groups) {
-    const key = entry.subject.toUpperCase();
+    const key = cleanSubjectName(entry.subject).toUpperCase();
+    if (!key || key.length < 4) continue;
     const existing = bySubject.get(key);
-    if (!existing || scoreEntry(entry) > scoreEntry(existing)) {
+    if (!existing) {
+      bySubject.set(key, entry);
+      continue;
+    }
+
+    const existingScore = scoreEntry(existing);
+    const newScore = scoreEntry(entry);
+
+    // Prefer the entry from a PASS-anchored strategy (has explicit grade from the source line)
+    // over a generic/fallback strategy when scores are close.
+    if (newScore > existingScore) {
       bySubject.set(key, entry);
     }
   }
@@ -377,17 +361,7 @@ export function parseOcrText(rawText) {
     throw new Error('Cannot parse grades: OCR returned empty text.');
   }
 
-  const normalizedText = rawText
-    .replace(/\r/g, '')
-    .replace(/\t/g, ' ')
-    .replace(/\[o\]/gi, ' 0 ')
-    .replace(/\[0\]/gi, ' 0 ')
-    .replace(/\[e\]/gi, ' O ')
-    .replace(/\boO\b/g, ' O ')
-    .replace(/\bOo\b/g, ' O ')
-    .replace(/[|]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const normalizedText = normalizeOcrTextBlock(rawText);
 
   const lines = rawText
     .split(/\r?\n/)
@@ -414,9 +388,13 @@ export function parseOcrText(rawText) {
     rawEntries = pickBestEntries(dedupeSubjects([...rawEntries, ...fallback]));
   }
 
-  const validated = rawEntries
-    .map((entry) => normalizeEntry(entry))
-    .filter(Boolean);
+  const validated = rectifySubjects(
+    rawEntries
+      .map((entry) => normalizeEntry(entry))
+      .filter(Boolean),
+    rawText,
+    '10'
+  );
 
   if (validated.length === 0) {
     throw new Error(
@@ -429,20 +407,4 @@ export function parseOcrText(rawText) {
 
 export function parseGradesResponse(rawText) {
   return parseOcrText(rawText);
-}
-
-export function getGradePoints(grade, scaleId) {
-  const scale = GRADING_SCALES[scaleId];
-  if (!scale) return null;
-
-  const normalized = grade.toUpperCase().trim();
-  if (normalized in scale.grades) return scale.grades[normalized];
-
-  return null;
-}
-
-export function getAvailableGrades(scaleId) {
-  const scale = GRADING_SCALES[scaleId];
-  if (!scale) return [];
-  return Object.keys(scale.grades);
 }

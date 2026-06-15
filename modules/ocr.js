@@ -4,10 +4,15 @@
  */
 
 import { createWorker, PSM } from 'tesseract.js';
+import {
+  getOcrTargetSize,
+  grayscaleToRgba,
+  preprocessGrayscale,
+  rgbaToGrayscale,
+} from './image-preprocess.js';
 
 /**
  * Preprocesses a gradesheet image for OCR.
- * Handles dark-mode screenshots by inverting, then boosts contrast.
  *
  * @param {string} base64 - Base64 image data.
  * @param {string} mimeType - Original MIME type.
@@ -17,55 +22,26 @@ function preprocessImage(base64, mimeType) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      const maxDim = 2400;
-      let { width, height } = img;
-
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
+      const { width, height } = getOcrTargetSize(img.width, img.height);
 
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-      // Flatten transparency — critical for PNG screenshots with alpha
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, 0, 0, width, height);
 
       const imageData = ctx.getImageData(0, 0, width, height);
-      const { data } = imageData;
-      let brightnessSum = 0;
+      const gray = rgbaToGrayscale(imageData.data, width, height);
+      const processed = preprocessGrayscale(gray, width, height);
+      const output = grayscaleToRgba(processed);
 
-      for (let i = 0; i < data.length; i += 4) {
-        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-        brightnessSum += gray;
-      }
-
-      const avgBrightness = brightnessSum / (data.length / 4);
-      const invert = avgBrightness < 120;
-
-      for (let i = 0; i < data.length; i += 4) {
-        let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-        if (invert) gray = 255 - gray;
-
-        const contrast = Math.min(255, Math.max(0, (gray - 128) * 1.6 + 128));
-        const binary = contrast > 145 ? 255 : contrast < 95 ? 0 : contrast;
-
-        data[i] = binary;
-        data[i + 1] = binary;
-        data[i + 2] = binary;
-      }
-
-      ctx.putImageData(imageData, 0, 0);
-      resolve(canvas.toDataURL('image/jpeg', 0.92));
+      ctx.putImageData(new ImageData(output, width, height), 0, 0);
+      resolve(canvas.toDataURL('image/jpeg', 0.95));
     };
     img.onerror = () => reject(new Error('Failed to load image for OCR preprocessing'));
     img.src = `data:${mimeType};base64,${base64}`;
@@ -84,6 +60,7 @@ function preprocessImage(base64, mimeType) {
 export async function extractGrades(base64Image, mimeType, onStatus) {
   let imageDataUrl;
   try {
+    if (onStatus) onStatus('Enhancing image for OCR…');
     imageDataUrl = await preprocessImage(base64Image, mimeType);
   } catch {
     imageDataUrl = `data:${mimeType};base64,${base64Image}`;
