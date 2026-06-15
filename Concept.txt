@@ -1,5 +1,0 @@
-the core idea is to ectract all the text using tesseract ocr then we will use patterns and algorithms to get credits and subject names respectively
-then we show all our findings to the user and the user can modify and delete or add subject if he wants 
-also he can able to edit if asny mistakes are there
-and finally we calculate the cgpa and show it as a celebration screen or a disappoinmtment screen 
-based on the cgpa he or she gets
