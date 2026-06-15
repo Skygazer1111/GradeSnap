@@ -1,13 +1,23 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import path from 'path';
 
 export default defineConfig({
+  plugins: [
+    react(),
+    tailwindcss(),
+  ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   server: {
     port: 8080,
     open: true,
   },
   build: {
-    // esbuild 0.28+ no longer downlevels destructuring for legacy targets.
-    // This app relies on modern APIs (Workers, Canvas, Tesseract.js).
     target: 'es2022',
   },
   esbuild: {

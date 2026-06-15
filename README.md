@@ -1,6 +1,6 @@
-# 📸 GradeSnap — CGPA Calculator
+# 📸 GradeSnap
 
-Upload a photo of your university gradesheet, let local OCR read it, review the extracted data, and get your CGPA — all inside the browser. **No server, no uploads, 100 % private.**
+A fast, private, and smart CGPA calculator that extracts your grades directly from a photo of your gradesheet using completely local, in-browser AI. No data leaves your device. **No server, no uploads, 100 % private.**
 
 ## ✨ Features
 
@@ -17,8 +17,8 @@ Upload a photo of your university gradesheet, let local OCR read it, review the 
 
 ```bash
 # Clone
-git clone https://github.com/Skygazer1111/EasyCgpaCalculator.git
-cd EasyCgpaCalculator
+git clone https://github.com/Skygazer1111/GradeSnap.git
+cd GradeSnap
 
 # Install dependencies
 npm install
