@@ -73,14 +73,9 @@ export function TeamPage({ onBack }: TeamPageProps) {
         <div className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_10%_-10%,rgba(56,189,248,0.24),transparent_55%),radial-gradient(circle_at_90%_110%,rgba(236,72,153,0.26),transparent_55%)] opacity-80" />
         <div className="relative space-y-10">
           <div className="flex flex-col items-center gap-2 text-center">
-            <p className="text-xs font-semibold tracking-[0.22em] text-primary/80">DEVELOPERS</p>
             <h2 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              The student builders who made it real
+              Our Team
             </h2>
-            <p className="max-w-xl text-sm text-muted-foreground">
-              Hover over a card to see GitHub and LinkedIn. Replace placeholders with your team
-              photos and profile links.
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-10">
@@ -89,14 +84,14 @@ export function TeamPage({ onBack }: TeamPageProps) {
               role="Developer"
               githubUrl="https://github.com/Skygazer1111"
               linkedinUrl="https://www.linkedin.com/in/priyan-rajarajan-b8128b2a2"
-              imageUrl="/priyan.png"
+              imageUrl="/images/priyan.png"
             />
             <TeamMemberCard
               name="Dhanush"
               role="Developer"
               githubUrl="https://github.com/Cosmos-0118"
               linkedinUrl="https://www.linkedin.com/in/dhanushs-dev/"
-              imageUrl="/dhanush.png"
+              imageUrl="/images/dhanush.jpeg"
             />
           </div>
         </div>
