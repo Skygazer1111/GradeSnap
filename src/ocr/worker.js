@@ -83,7 +83,7 @@ export async function extractGrades(base64Image, mimeType, onStatus) {
 
   try {
     await worker.setParameters({
-      tessedit_pageseg_mode: PSM.SPARSE_TEXT,
+      tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
       preserve_interword_spaces: '1',
     });
 
