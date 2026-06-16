@@ -9,6 +9,9 @@ import { OcrProcessing } from "@/features/upload/OcrProcessing";
 import { DataReview } from "@/features/review/DataReview";
 import { CgpaResult } from "@/features/results/CgpaResult";
 import { TeamPage } from "@/features/about/TeamPage";
+import { TermsPage } from "@/features/about/TermsPage";
+import { PrivacyPage } from "@/features/about/PrivacyPage";
+import { Footer } from "@/components/layout/Footer";
 import { computeCgpa, type Subject, type CgpaSummary } from "@/domain/cgpa/cgpa";
 import { runOcr, demoSubjects } from "@/domain/ocr/orchestration/ocr";
 import { toast } from "sonner";
@@ -16,7 +19,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function App() {
-  const [stage, setStage] = useState<"idle" | "processing" | "review" | "result" | "team">("idle");
+  const [stage, setStage] = useState<"idle" | "processing" | "review" | "result" | "team" | "terms" | "privacy">("idle");
   const [ocrStage, setOcrStage] = useState(0);
   const [ocrFraction, setOcrFraction] = useState(0);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -83,6 +86,14 @@ export function App() {
     setStage("team");
   }, []);
 
+  const openTerms = useCallback(() => {
+    setStage("terms");
+  }, []);
+
+  const openPrivacy = useCallback(() => {
+    setStage("privacy");
+  }, []);
+
   return (
     <div
       className={cn(
@@ -113,14 +124,6 @@ export function App() {
                   className="group flex items-center justify-center gap-2 rounded-xl glass-inset px-6 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-secondary/50 hover:text-foreground hover:shadow-sm sm:w-72"
                 >
                   Or enter your grades manually
-                </button>
-                <button
-                  type="button"
-                  onClick={openTeamPage}
-                  className="group flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background/60 px-6 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-secondary/50 hover:text-foreground hover:shadow-sm sm:w-72"
-                >
-                  <Users className="h-4 w-4 text-primary" />
-                  Our team
                 </button>
               </div>
             </motion.div>
@@ -177,8 +180,34 @@ export function App() {
               <TeamPage onBack={reset} />
             </motion.div>
           )}
+
+          {stage === "terms" && (
+            <motion.div
+              key="terms"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="flex flex-1"
+            >
+              <TermsPage onBack={reset} />
+            </motion.div>
+          )}
+
+          {stage === "privacy" && (
+            <motion.div
+              key="privacy"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="flex flex-1"
+            >
+              <PrivacyPage onBack={reset} />
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
+
+      <Footer onTeamClick={openTeamPage} onTermsClick={openTerms} onPrivacyClick={openPrivacy} />
     </div>
   );
 }
