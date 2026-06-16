@@ -1,6 +1,6 @@
 # 📸 GradeSnap
 
-A fast, private, and smart CGPA calculator that extracts your grades directly from a photo of your gradesheet using completely local, in-browser AI. No data leaves your device. **No server, no uploads, 100 % private.**
+A fast, private, and smart SGPA calculator that extracts your grades directly from a photo of your gradesheet using completely local, in-browser AI. No data leaves your device. **No server, no uploads, 100 % private.**
 
 ## ✨ Features
 

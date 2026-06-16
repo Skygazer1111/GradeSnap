@@ -21,6 +21,7 @@ export interface Subject {
   credits: number;
   grade: string;
   points: number;
+  flagged?: boolean;
 }
 
 export type GradeKey =

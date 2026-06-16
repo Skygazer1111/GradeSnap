@@ -20,7 +20,7 @@ export function Hero() {
         transition={{ delay: 0.12 }}
         className="mt-3 font-display text-lg font-medium text-foreground/90 sm:text-2xl"
       >
-        Smart CGPA Calculator
+        Smart SGPA Calculator
       </motion.p>
 
 

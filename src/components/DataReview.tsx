@@ -66,11 +66,24 @@ export function DataReview({ subjects, setSubjects, onCalculate, onBack }: DataR
 
   const remove = (id: string) => setSubjects(subjects.filter((s) => s.id !== id));
 
-  const add = () =>
+  const add = () => {
+    const names = [
+      "Machine Learning",
+      "Cloud Computing",
+      "Quantum Physics",
+      "Game Engine Architecture",
+      "Cryptography",
+      "Operating Systems",
+      "Artificial Intelligence",
+      "Computer Networks",
+      "Software Engineering",
+    ];
+    const randomName = names[Math.floor(Math.random() * names.length)];
     setSubjects([
       ...subjects,
-      { id: uid(), name: "New Subject", credits: 3, grade: "A", points: gradeToPoints("A") },
+      { id: uid(), name: randomName, credits: 3, grade: "A", points: gradeToPoints("A") },
     ]);
+  };
 
   const toggleSort = (key: SortKey) =>
     setSort((s) => (s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
@@ -110,7 +123,7 @@ export function DataReview({ subjects, setSubjects, onCalculate, onBack }: DataR
           </div>
         </div>
 
-        {/* quick counters (neutral — no CGPA spoiler) */}
+        {/* quick counters */}
         <div className="grid grid-cols-2 gap-3 px-4 py-3 sm:px-5">
           <Counter icon={ListChecks} label="Subjects" value={totals.subjects} />
           <Counter icon={Layers} label="Total credits" value={totals.credits} />
@@ -129,67 +142,7 @@ export function DataReview({ subjects, setSubjects, onCalculate, onBack }: DataR
         <div className="flex-1 overflow-y-auto px-2 py-1.5 sm:px-3 min-h-0">
           <AnimatePresence initial={false}>
             {visible.map((s, i) => (
-              <motion.div
-                key={s.id}
-                layout
-                initial={{ opacity: 0, height: 0, scale: 0.96 }}
-                animate={{ opacity: 1, height: "auto", scale: 1 }}
-                exit={{ opacity: 0, height: 0, scale: 0.9 }}
-                transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                className="group grid grid-cols-[2rem_1fr_4.5rem_5rem_2.5rem] items-center gap-2 rounded-xl border border-transparent px-2 py-1 transition-colors hover:border-border hover:bg-secondary/40"
-              >
-                <span className="text-center text-xs font-medium tabular-nums text-muted-foreground">
-                  {i + 1}
-                </span>
-                <input
-                  value={s.name}
-                  onChange={(e) => update(s.id, { name: e.target.value })}
-                  className="w-full rounded-lg bg-transparent px-2 py-2 text-sm font-medium outline-none transition-colors focus:bg-secondary"
-                />
-                <div className="relative">
-                  <input
-                    type="number"
-                    min={0}
-                    max={12}
-                    value={s.credits}
-                    onChange={(e) => update(s.id, { credits: Number(e.target.value), flagged: false })}
-                    className={cn(
-                      "w-full rounded-lg px-2 py-2 text-center text-sm tabular-nums outline-none transition-colors focus:bg-secondary",
-                      s.flagged
-                        ? "bg-warning/10 text-warning ring-1 ring-warning/40"
-                        : "bg-transparent"
-                    )}
-                    title={s.flagged ? "Credits may be missing or inferred. Please verify." : undefined}
-                  />
-                </div>
-                <div
-                  className="relative rounded-lg"
-                  style={{ background: gradeTint(s.points) }}
-                >
-                  <select
-                    value={GRADE_OPTIONS.includes(s.grade.toUpperCase()) ? s.grade.toUpperCase() : s.grade}
-                    onChange={(e) => update(s.id, { grade: e.target.value })}
-                    className="w-full cursor-pointer appearance-none rounded-lg bg-transparent px-2 py-2 text-center text-sm font-bold outline-none"
-                    style={{ color: gradeColor(s.points) }}
-                  >
-                    {(GRADE_OPTIONS.includes(s.grade.toUpperCase())
-                      ? GRADE_OPTIONS
-                      : [s.grade, ...GRADE_OPTIONS]
-                    ).map((g) => (
-                      <option key={g} value={g} className="bg-popover text-popover-foreground">
-                        {g}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  onClick={() => remove(s.id)}
-                  aria-label="Delete subject"
-                  className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground opacity-60 transition-all hover:bg-destructive/15 hover:text-destructive group-hover:opacity-100"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </motion.div>
+              <DataReviewRow key={s.id} s={s} i={i} update={update} remove={remove} />
             ))}
           </AnimatePresence>
 
@@ -268,24 +221,162 @@ function SortButton({
   );
 }
 
+
 function Counter({
   icon: Icon,
   label,
   value,
 }: {
-  icon: typeof Layers;
+  icon: typeof import("lucide-react").Layers;
   label: string;
   value: number;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-xl glass-inset px-3 py-2.5">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-secondary text-primary">
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-secondary text-primary">
         <Icon className="h-4 w-4" />
       </span>
-      <div>
-        <div className="font-display text-lg font-bold leading-none tabular-nums">{value}</div>
-        <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="font-display text-sm font-semibold tracking-wide text-muted-foreground">
+        {label} : <span className="font-bold text-foreground">{value}</span>
       </div>
     </div>
   );
 }
+
+import { Popover } from "./ui/popover";
+import { useRef, forwardRef } from "react";
+
+const DataReviewRow = forwardRef<HTMLDivElement, {
+  s: Subject;
+  i: number;
+  update: (id: string, patch: Partial<Subject>) => void;
+  remove: (id: string) => void;
+}>(function DataReviewRow({ s, i, update, remove }, ref) {
+  const [creditsOpen, setCreditsOpen] = useState(false);
+  const creditsRef = useRef<HTMLButtonElement>(null);
+
+  const [gradeOpen, setGradeOpen] = useState(false);
+  const gradeRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <motion.div
+      ref={ref}
+      layout
+      initial={{ opacity: 0, height: 0, scale: 0.96 }}
+      animate={{ opacity: 1, height: "auto", scale: 1 }}
+      exit={{ opacity: 0, x: -20, height: 0, scale: 0.9, filter: "blur(4px)" }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      className="group grid grid-cols-[2rem_1fr_4.5rem_5rem_2.5rem] items-center gap-2 rounded-xl border border-transparent px-2 py-1 transition-colors hover:border-border hover:bg-secondary/40 overflow-hidden"
+    >
+      <span className="text-center text-xs font-medium tabular-nums text-muted-foreground">
+        {i + 1}
+      </span>
+      <input
+        value={s.name}
+        onChange={(e) => update(s.id, { name: e.target.value })}
+        className="w-full rounded-lg bg-transparent px-2 py-2 text-sm font-medium outline-none transition-colors focus:bg-secondary"
+      />
+
+      {/* Credits Dropdown */}
+      <div className="relative">
+        <button
+          ref={creditsRef}
+          onClick={() => setCreditsOpen(true)}
+          title={s.flagged ? "Credits may be missing or inferred. Please verify." : undefined}
+          className={cn(
+            "w-full rounded-lg px-2 py-2 text-center text-sm tabular-nums outline-none transition-colors hover:bg-secondary active:scale-95",
+            s.flagged
+              ? "bg-warning/10 text-warning ring-1 ring-warning/40 hover:bg-warning/20"
+              : "bg-transparent",
+            creditsOpen && "bg-secondary"
+          )}
+        >
+          {s.credits}
+        </button>
+        <Popover
+          isOpen={creditsOpen}
+          onClose={() => setCreditsOpen(false)}
+          anchorRef={creditsRef}
+          align="center"
+          className="w-48 p-2"
+        >
+          <div className="grid grid-cols-3 gap-1">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 10, 12].map((c) => (
+              <button
+                key={c}
+                onClick={() => {
+                  update(s.id, { credits: c, flagged: false });
+                  setCreditsOpen(false);
+                }}
+                className={cn(
+                  "rounded-lg py-2 text-sm font-medium tabular-nums transition-colors hover:bg-secondary active:scale-95",
+                  s.credits === c && "bg-primary/20 text-primary hover:bg-primary/30"
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </Popover>
+      </div>
+
+      {/* Grade Dropdown */}
+      <div className="relative">
+        <button
+          ref={gradeRef}
+          onClick={() => setGradeOpen(true)}
+          className={cn(
+            "w-full rounded-lg px-2 py-2 text-center text-sm font-bold outline-none transition-transform hover:brightness-110 active:scale-95",
+            gradeOpen && "ring-2 ring-primary/50 ring-offset-2 ring-offset-background"
+          )}
+          style={{ background: gradeTint(s.points), color: gradeColor(s.points) }}
+        >
+          {s.grade.toUpperCase()}
+        </button>
+        <Popover
+          isOpen={gradeOpen}
+          onClose={() => setGradeOpen(false)}
+          anchorRef={gradeRef}
+          align="center"
+          className="w-48 p-2"
+        >
+          <div className="grid grid-cols-4 gap-1">
+            {GRADE_OPTIONS.map((g) => {
+              const pts = gradeToPoints(g);
+              const isSelected = s.grade.toUpperCase() === g;
+              return (
+                <button
+                  key={g}
+                  onClick={() => {
+                    update(s.id, { grade: g });
+                    setGradeOpen(false);
+                  }}
+                  className={cn(
+                    "rounded-lg py-2 text-center text-sm font-bold transition-all hover:scale-[1.05] active:scale-95",
+                    isSelected ? "ring-2 ring-primary/50" : "hover:bg-secondary"
+                  )}
+                  style={isSelected ? {
+                    background: gradeTint(pts),
+                    color: gradeColor(pts),
+                  } : {
+                    color: "var(--foreground)",
+                  }}
+                >
+                  {g}
+                </button>
+              );
+            })}
+          </div>
+        </Popover>
+      </div>
+
+      <button
+        onClick={() => remove(s.id)}
+        aria-label="Delete subject"
+        className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground opacity-60 transition-all hover:bg-destructive/15 hover:text-destructive group-hover:opacity-100 active:scale-75"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </motion.div>
+  );
+});
