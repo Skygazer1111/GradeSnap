@@ -63,43 +63,14 @@ export function stripGradesheetDatePrefix(line) {
  * @returns {string}
  */
 export function applyOcrGradeCreditFixes(text) {
+  // We no longer do rigid hardcoded regex replacements.
+  // The new grade-matcher.js and credit-matcher.js use fuzzy matching.
+  // We just do basic cleanup here.
   let out = text
-    .replace(/(\d{1,2})\s+\[0\]/gi, '$1 O')
-    .replace(/(\d{1,2})\s+\[o\]/gi, '$1 O')
-    .replace(/\[0\]\s+\[0\]/gi, ' 0 O ')
-    .replace(/\[o\]\s+\[o\]/gi, ' 0 O ')
-    .replace(/\[o\]\s+\[0\]/gi, ' 0 O ')
-    .replace(/\[0\]\s+\[o\]/gi, ' 0 O ')
-    .replace(/\[0\]\s+(A\+|A-|B\+|B-|C\+|C-|D\+|D-|Oo|O|A|B|C|D|F)\b/gi, ' 0 $1 ')
-    .replace(/\[lo\]/gi, ' O ')
-    .replace(/\blo\)/gi, ' O ')
-    .replace(/\[eo\]/gi, ' O ')
-    .replace(/\[e\]/gi, ' O ')
-    .replace(/\(e\]/gi, ' O ')
-    .replace(/\(e\}/gi, ' O ')
-    .replace(/\(o\]/gi, ' O ')
-    .replace(/\(o\}/gi, ' O ')
-    .replace(/\[s\]/gi, ' O ')
-    .replace(/\[S\]/gi, ' O ')
-    .replace(/\(s\]/gi, ' O ')
-    .replace(/\(s\}/gi, ' O ')
-    .replace(/\(S\]/gi, ' O ')
-    .replace(/\(S\}/gi, ' O ')
-    .replace(/(\d{1,2})\s+0\s+(PASS|FAIL)\b/gi, '$1 O $2')
-    .replace(/(\d{1,2})\s+\(0\)\s+(PASS|FAIL)\b/gi, '$1 O $2')
-    .replace(/(\d{1,2})\s+0\s*$/g, '$1 O')
-    .replace(/(\d{1,2})\s+\(0\)\s*$/g, '$1 O')
-    .replace(/\blo\]/gi, ' O ')
     .replace(/\boO\b/g, ' O ')
-    .replace(/\bOo\b/g, ' O ');
-
-  if (/ANALYTICAL|LOGICAL\s+THINKING/i.test(out)) {
-    out = out.replace(
-      /\[o\]\s+(A\+|A-|B\+|B-|C\+|C-|D\+|D-|Oo|O|A|B|C|D|F)\b/gi,
-      ' 0 $1 '
-    );
-  }
-
+    .replace(/\bOo\b/g, ' O ')
+    .replace(/\[o\]/gi, ' O ')
+    .replace(/\(e\]/gi, ' O ');
   return out;
 }
 

@@ -4,7 +4,7 @@
  * Upscale, contrast stretch, and sharpen improve digit accuracy for Tesseract.
  */
 
-export const MIN_OCR_WIDTH = 2800;
+export const MIN_OCR_WIDTH = 3200;
 
 /**
  * @param {Uint8ClampedArray|Uint8Array} rgba - RGBA pixel data.
