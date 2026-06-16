@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { parseOcrText } from '../../src/ocr/parser.js';
+import { parseOcrText } from '@/domain/ocr/orchestration/parser.js';
 import {
   buildOcrRowAnchors,
   rectifySubjectRow,
   rectifySubjects,
-} from '../../src/core/rectifier.js';
-import { SAMPLE_SUBJECTS } from '../fixtures/sample-results.js';
+} from '@/domain/cgpa/rectifier.js';
+import { SAMPLE_SUBJECTS } from '../../fixtures/sample-results.js';
 
 const SAMPLE_OCR_SNIPPET = `1 4 21MAB204T PROBABILITY AND QUEUEING THEORY 4 [o] PASS
 3 4 21CSC205P DATABASE MANAGEMENT SYSTEMS 4 [0] PASS

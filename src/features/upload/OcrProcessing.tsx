@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { Check, Loader2, ScanLine } from "lucide-react";
-import { OCR_STAGES } from "@/lib/ocr";
+import { OCR_STAGES } from "@/domain/ocr/orchestration/ocr";
 import { cn } from "@/lib/utils";
 
 interface OcrProcessingProps {

@@ -1,4 +1,4 @@
-import { getAvailableGrades } from '../../core/grade-mapper.js';
+import { getAvailableGrades } from '@/domain/cgpa/grade-mapper.js';
 
 // Common OCR mistakes that are completely different characters but visually similar
 const EXACT_ALIASES = {

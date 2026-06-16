@@ -1,8 +1,8 @@
 import { useRef } from "react";
 import { motion } from "motion/react";
 import { Sparkles, Trophy, Star } from "lucide-react";
-import type { CgpaSummary } from "@/lib/cgpa";
-import { CountUp } from "./CountUp";
+import type { CgpaSummary } from "@/domain/cgpa/cgpa";
+import { CountUp } from "@/components/ui/CountUp";
 import { ScoreMeter } from "./ScoreMeter";
 import { Celebration } from "./Celebration";
 import { InsightCards } from "./InsightCards";

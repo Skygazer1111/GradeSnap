@@ -3,7 +3,7 @@
  * @description Shared OCR text normalization for parser and rectifier.
  */
 
-import { normalizeGradeSymbol } from '../core/grade-mapper.js';
+import { normalizeGradeSymbol } from '@/domain/cgpa/grade-mapper.js';
 
 export const COURSE_CODE_PATTERN = '2[1Iil][A-Za-z]{2,5}\\d{2,4}[A-Za-z)]*';
 export const COURSE_CODE_REGEX = new RegExp(COURSE_CODE_PATTERN, 'i');

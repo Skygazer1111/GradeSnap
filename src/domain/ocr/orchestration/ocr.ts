@@ -2,13 +2,14 @@
  * OCR Adapter: bridges the Studio UI's OCR interface with our
  * PaddleOCR pipeline (paddle-worker → spatial-assembler → rectifier).
  *
- * The Studio components import from "@/lib/ocr" — this file fulfills
+ * The Studio components import from "@/domain/ocr/orchestration/ocr" — this file fulfills
  * that contract by delegating to the new AI-powered backend.
  */
 
-import { gradeToPoints, uid, type Subject } from "./cgpa";
-import { extractGradesFromFile } from "@/ocr/paddle-worker.js";
-import { parseBoundingBoxes, parseOcrText } from "@/ocr/parser.js";
+import { gradeToPoints, uid } from "@/domain/cgpa/cgpa";
+import type { Subject } from "@/domain/cgpa/cgpa";
+import { extractGradesFromFile } from "@/domain/ocr/workers/paddle-worker.js";
+import { parseBoundingBoxes, parseOcrText } from "@/domain/ocr/orchestration/parser.js";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

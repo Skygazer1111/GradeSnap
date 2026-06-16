@@ -2,16 +2,16 @@
  * Adapter: translates the existing backend's API into the interface
  * expected by the GradeSnap Studio UI components.
  *
- * The Studio components import from "@/lib/cgpa" — this file fulfills
+ * The Studio components import from "@/domain/cgpa/cgpa" — this file fulfills
  * that contract by delegating to our battle-tested backend modules.
  */
 
-import { calculateCGPA } from '@/core/calculator.js';
+import { calculateCGPA } from '@/domain/cgpa/calculator.js';
 import {
   GRADING_SCALES,
   getGradePoints,
   normalizeGradeSymbol,
-} from '@/core/grade-mapper.js';
+} from '@/domain/cgpa/grade-mapper.js';
 
 // ─── Types matching Studio UI expectations ──────────────────────────────────
 

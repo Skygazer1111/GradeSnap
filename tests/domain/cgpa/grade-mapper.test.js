@@ -7,8 +7,8 @@ import {
   normalizeGradeSymbol,
   resolveGrade,
   roundCgpa,
-} from '../../src/core/grade-mapper.js';
-import { calculateCGPA } from '../../src/core/calculator.js';
+} from '@/domain/cgpa/grade-mapper.js';
+import { calculateCGPA } from '@/domain/cgpa/calculator.js';
 import {
   EXPECTED_CGPA_10_POINT,
   EXPECTED_SAMPLE2_CGPA,
@@ -16,7 +16,7 @@ import {
   SAMPLE_SUBJECTS,
   SRM_USER_TOTAL_CREDITS,
   SRM_USER_TOTAL_QUALITY_POINTS,
-} from '../fixtures/sample-results.js';
+} from '../../fixtures/sample-results.js';
 
 describe('grade-mapper (SRM)', () => {
   it('maps SRM grade symbols to grade points', () => {

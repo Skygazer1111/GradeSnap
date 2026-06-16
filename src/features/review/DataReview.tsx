@@ -16,7 +16,7 @@ import {
   gradeToPoints,
   uid,
   type Subject,
-} from "@/lib/cgpa";
+} from "@/domain/cgpa/cgpa";
 import { cn } from "@/lib/utils";
 
 interface DataReviewProps {
@@ -243,7 +243,7 @@ function Counter({
   );
 }
 
-import { Popover } from "./ui/popover";
+import { Popover } from "@/components/ui/popover";
 import { useRef, forwardRef } from "react";
 
 const DataReviewRow = forwardRef<HTMLDivElement, {

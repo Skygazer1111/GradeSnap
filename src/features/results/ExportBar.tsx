@@ -1,7 +1,7 @@
 import { useState, type RefObject } from "react";
 import { Copy, Download, Share2, Check, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
-import type { CgpaSummary } from "@/lib/cgpa";
+import type { CgpaSummary } from "@/domain/cgpa/cgpa";
 import { cn } from "@/lib/utils";
 
 interface ExportBarProps {

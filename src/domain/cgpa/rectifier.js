@@ -14,7 +14,7 @@ import {
   isGradesheetHeaderNoise,
   parseCreditValue,
   stripGradesheetDatePrefix,
-} from '../ocr/normalize.js';
+} from '@/domain/ocr/transforms/normalize.js';
 
 const VALID_CREDITS = new Set([0, 2, 3, 4]);
 const AUDIT_SUBJECT_RE =

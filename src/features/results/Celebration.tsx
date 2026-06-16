@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { Classification } from "@/lib/cgpa";
+import type { Classification } from "@/domain/cgpa/cgpa";
 
 interface Particle {
   x: number;

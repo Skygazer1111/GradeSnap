@@ -1,14 +1,14 @@
 import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Header } from "@/components/Header";
-import { Hero } from "@/components/Hero";
-import { UploadCard } from "@/components/UploadCard";
-import { AnimatedBackground } from "@/components/AnimatedBackground";
-import { OcrProcessing } from "@/components/OcrProcessing";
-import { DataReview } from "@/components/DataReview";
-import { CgpaResult } from "@/components/CgpaResult";
-import { computeCgpa, type Subject, type CgpaSummary } from "@/lib/cgpa";
-import { runOcr, demoSubjects } from "@/lib/ocr";
+import { Header } from "@/components/layout/Header";
+import { Hero } from "@/features/upload/Hero";
+import { UploadCard } from "@/features/upload/UploadCard";
+import { AnimatedBackground } from "@/components/layout/AnimatedBackground";
+import { OcrProcessing } from "@/features/upload/OcrProcessing";
+import { DataReview } from "@/features/review/DataReview";
+import { CgpaResult } from "@/features/results/CgpaResult";
+import { computeCgpa, type Subject, type CgpaSummary } from "@/domain/cgpa/cgpa";
+import { runOcr, demoSubjects } from "@/domain/ocr/orchestration/ocr";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";

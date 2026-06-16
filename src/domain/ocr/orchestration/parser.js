@@ -6,10 +6,10 @@
  *   2. Raw text fallback (for backward compat with tests and edge cases)
  */
 
-import { assembleSpatialRows } from './modules/spatial-assembler.js';
-import { assembleRows } from './modules/row-assembler.js';
-import { rectifySubjects } from '../core/rectifier.js';
-import { getAvailableGrades, getGradePoints } from '../core/grade-mapper.js';
+import { assembleSpatialRows } from '@/domain/ocr/parsing/spatial-assembler.js';
+import { assembleRows } from '@/domain/ocr/parsing/row-assembler.js';
+import { rectifySubjects } from '@/domain/cgpa/rectifier.js';
+import { getAvailableGrades, getGradePoints } from '@/domain/cgpa/grade-mapper.js';
 
 export { getAvailableGrades, getGradePoints };
 

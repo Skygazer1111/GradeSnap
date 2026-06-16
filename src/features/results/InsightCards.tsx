@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { Layers, Award, Target, GraduationCap } from "lucide-react";
-import { classify, type CgpaSummary } from "@/lib/cgpa";
+import { classify, type CgpaSummary } from "@/domain/cgpa/cgpa";
 
 interface InsightCardsProps {
   summary: CgpaSummary;

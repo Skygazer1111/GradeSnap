@@ -1,8 +1,8 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
-import { parseBoundingBoxes } from '../../src/ocr/parser.js';
-import { calculateCGPA, getResultMood } from '../../src/core/calculator.js';
+import { parseBoundingBoxes } from '@/domain/ocr/orchestration/parser.js';
+import { calculateCGPA, getResultMood } from '@/domain/cgpa/calculator.js';
 import {
   EXPECTED_CGPA_10_POINT,
   EXPECTED_MOOD,

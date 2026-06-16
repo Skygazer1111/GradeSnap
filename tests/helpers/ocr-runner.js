@@ -8,7 +8,7 @@ import { PaddleOcrService } from 'ppu-paddle-ocr';
 import sharp from 'sharp';
 import {
   getOcrTargetSize,
-} from '../../src/ocr/preprocess.js';
+} from '@/domain/ocr/transforms/preprocess.js';
 
 let _service = null;
 

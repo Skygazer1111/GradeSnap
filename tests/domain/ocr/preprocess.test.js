@@ -5,7 +5,7 @@ import {
   getOcrTargetSize,
   otsuThreshold,
   preprocessGrayscale,
-} from '../../src/ocr/preprocess.js';
+} from '@/domain/ocr/transforms/preprocess.js';
 
 describe('image-preprocess', () => {
   it('upscales narrow screenshots to improve digit OCR', () => {
