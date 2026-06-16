@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { Users } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Hero } from "@/features/upload/Hero";
 import { UploadCard } from "@/features/upload/UploadCard";
@@ -7,6 +8,7 @@ import { AnimatedBackground } from "@/components/layout/AnimatedBackground";
 import { OcrProcessing } from "@/features/upload/OcrProcessing";
 import { DataReview } from "@/features/review/DataReview";
 import { CgpaResult } from "@/features/results/CgpaResult";
+import { TeamPage } from "@/features/about/TeamPage";
 import { computeCgpa, type Subject, type CgpaSummary } from "@/domain/cgpa/cgpa";
 import { runOcr, demoSubjects } from "@/domain/ocr/orchestration/ocr";
 import { toast } from "sonner";
@@ -14,7 +16,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function App() {
-  const [stage, setStage] = useState<"idle" | "processing" | "review" | "result">("idle");
+  const [stage, setStage] = useState<"idle" | "processing" | "review" | "result" | "team">("idle");
   const [ocrStage, setOcrStage] = useState(0);
   const [ocrFraction, setOcrFraction] = useState(0);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -77,6 +79,10 @@ export function App() {
     setStage("review");
   }, []);
 
+  const openTeamPage = useCallback(() => {
+    setStage("team");
+  }, []);
+
   return (
     <div
       className={cn(
@@ -101,13 +107,22 @@ export function App() {
             >
               <Hero />
               <UploadCard onFile={handleFile} onDemo={handleDemo} />
-              
-              <button 
-                onClick={handleManualEntry}
-                className="group flex items-center justify-center gap-2 rounded-xl glass-inset px-6 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-secondary/50 hover:text-foreground hover:shadow-sm sm:w-96"
-              >
-                Or enter your grades manually
-              </button>
+              <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+                <button
+                  onClick={handleManualEntry}
+                  className="group flex items-center justify-center gap-2 rounded-xl glass-inset px-6 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-secondary/50 hover:text-foreground hover:shadow-sm sm:w-72"
+                >
+                  Or enter your grades manually
+                </button>
+                <button
+                  type="button"
+                  onClick={openTeamPage}
+                  className="group flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background/60 px-6 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-secondary/50 hover:text-foreground hover:shadow-sm sm:w-72"
+                >
+                  <Users className="h-4 w-4 text-primary" />
+                  Our team
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -148,6 +163,18 @@ export function App() {
               className="pb-10"
             >
               <CgpaResult summary={summary} onReset={reset} />
+            </motion.div>
+          )}
+
+          {stage === "team" && (
+            <motion.div
+              key="team"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="flex flex-1"
+            >
+              <TeamPage onBack={reset} />
             </motion.div>
           )}
         </AnimatePresence>
