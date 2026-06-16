@@ -72,6 +72,11 @@ export function App() {
     setSummary(null);
   }, []);
 
+  const handleManualEntry = useCallback(() => {
+    setSubjects([]); // Start with empty so they can add via the review screen
+    setStage("review");
+  }, []);
+
   return (
     <div
       className={cn(
@@ -92,10 +97,17 @@ export function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="flex flex-col items-center gap-12 pb-10"
+              className="flex flex-col items-center gap-6 pb-10"
             >
               <Hero />
               <UploadCard onFile={handleFile} onDemo={handleDemo} />
+              
+              <button 
+                onClick={handleManualEntry}
+                className="group flex items-center justify-center gap-2 rounded-xl glass-inset px-6 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-secondary/50 hover:text-foreground hover:shadow-sm sm:w-96"
+              >
+                Or enter your grades manually
+              </button>
             </motion.div>
           )}
 

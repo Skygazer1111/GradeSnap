@@ -1,12 +1,45 @@
 /**
  * @module row-assembler
  * Coordinates the OCR modules to parse text into structured subject rows.
+ * This is the text-based fallback when spatial assembly isn't available.
  */
 
 import { extractGradeFromEnd } from './grade-matcher.js';
 import { extractCreditFromEnd } from './credit-matcher.js';
 import { extractSubject } from './subject-extractor.js';
-import { segmentText } from './line-segmenter.js';
+
+/**
+ * Splits raw OCR text into processable segments.
+ */
+function segmentText(rawText) {
+  if (!rawText) return [];
+  const rawLines = rawText.split(/\r?\n/);
+  const segments = [];
+  for (const line of rawLines) {
+    const cleaned = line.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!cleaned) continue;
+    if (/\b(PASS|FAIL)\b/i.test(cleaned)) {
+      const parts = cleaned.split(/\b(PASS|FAIL)\b/i);
+      let currentSegment = '';
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (part.toUpperCase() === 'PASS' || part.toUpperCase() === 'FAIL') {
+          currentSegment += ' ' + part;
+          segments.push(currentSegment.trim());
+          currentSegment = '';
+        } else {
+          currentSegment += part;
+        }
+      }
+      if (currentSegment.trim().length > 5) {
+        segments.push(currentSegment.trim());
+      }
+    } else {
+      segments.push(cleaned);
+    }
+  }
+  return segments;
+}
 
 const HEADER_PATTERNS = [
   /^S\.?\s*NO\.?$/i,

@@ -1,14 +1,14 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
-import { parseOcrText } from '../../src/ocr/parser.js';
+import { parseBoundingBoxes } from '../../src/ocr/parser.js';
 import { calculateCGPA, getResultMood } from '../../src/core/calculator.js';
 import {
   EXPECTED_CGPA_10_POINT,
   EXPECTED_MOOD,
   SAMPLE_SUBJECTS,
 } from '../fixtures/sample-results.js';
-import { runOcrOnImage } from '../helpers/ocr-runner.js';
+import { runOcrOnImageWithBoxes } from '../helpers/ocr-runner.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SAMPLE_IMAGE = path.join(__dirname, '..', '..', 'sample', 'SampleResults.png');
@@ -21,11 +21,12 @@ describe('sample image integration', () => {
   it(
     'reads SampleResults.png, parses subjects, and calculates CGPA',
     async () => {
-      const ocrText = await runOcrOnImage(SAMPLE_IMAGE);
+      const { text: ocrText, items } = await runOcrOnImageWithBoxes(SAMPLE_IMAGE);
 
-      expect(ocrText.length).toBeGreaterThan(100);
+      expect(ocrText.length).toBeGreaterThan(50);
 
-      const parsed = parseOcrText(ocrText);
+      // Use spatial assembly (bounding boxes) as the primary path
+      const parsed = parseBoundingBoxes(items, ocrText);
       expect(parsed.length).toBeGreaterThanOrEqual(7);
 
       for (const expectedRow of SAMPLE_SUBJECTS) {

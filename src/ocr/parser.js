@@ -1,8 +1,12 @@
 /**
  * @module parser
- * @description Parses OCR text from university gradesheets into editable subject rows using modular pipeline.
+ * @description Parses OCR output from gradesheets into editable subject rows.
+ * Supports two input modes:
+ *   1. Bounding-box data from PaddleOCR (primary, spatial assembly)
+ *   2. Raw text fallback (for backward compat with tests and edge cases)
  */
 
+import { assembleSpatialRows } from './modules/spatial-assembler.js';
 import { assembleRows } from './modules/row-assembler.js';
 import { rectifySubjects } from '../core/rectifier.js';
 import { getAvailableGrades, getGradePoints } from '../core/grade-mapper.js';
@@ -10,9 +14,44 @@ import { getAvailableGrades, getGradePoints } from '../core/grade-mapper.js';
 export { getAvailableGrades, getGradePoints };
 
 /**
- * Parses OCR text from a gradesheet into subject rows.
+ * Parses bounding-box results from PaddleOCR into subject rows.
  *
- * @param {string} rawText - Raw text from Tesseract OCR.
+ * @param {Array<{text: string, box: {x:number,y:number,width:number,height:number}, confidence: number}>} items
+ * @param {string} rawText - The raw concatenated text (for rectifier anchors).
+ * @returns {Array<{id: string, subject: string, credits: number, grade: string, flagged: boolean}>}
+ */
+export function parseBoundingBoxes(items, rawText = '') {
+  if (!items || items.length === 0) {
+    throw new Error('Cannot parse grades: OCR returned no detected text regions.');
+  }
+
+  let parsedRows = assembleSpatialRows(items, '10');
+
+  // Fall back to text-based parsing if spatial assembly found nothing
+  // (e.g. if all items were on one line or the layout was unusual)
+  if (parsedRows.length < 2 && rawText) {
+    const textRows = assembleRows(rawText, '10');
+    if (textRows.length > parsedRows.length) {
+      parsedRows = textRows;
+    }
+  }
+
+  // Run through rectifier for credit inference and validation
+  const validated = rectifySubjects(parsedRows, rawText, '10');
+
+  if (validated.length === 0) {
+    throw new Error(
+      'Could not detect subjects in the OCR output. You can still add rows manually, or try a clearer screenshot.'
+    );
+  }
+
+  return validated;
+}
+
+/**
+ * Parses raw OCR text into subject rows (backward compat).
+ *
+ * @param {string} rawText - Raw text from OCR.
  * @returns {Array<{id: string, subject: string, credits: number, grade: string, flagged: boolean}>}
  */
 export function parseOcrText(rawText) {
@@ -20,11 +59,9 @@ export function parseOcrText(rawText) {
     throw new Error('Cannot parse grades: OCR returned empty text.');
   }
 
-  // Use the new modular assembler
+  // Use the text-based row assembler
   let parsedRows = assembleRows(rawText, '10');
 
-  // We can still run the result through rectifier to fix credits if anchors are found,
-  // but our new extraction should be much better natively.
   const validated = rectifySubjects(parsedRows, rawText, '10');
 
   if (validated.length === 0) {
