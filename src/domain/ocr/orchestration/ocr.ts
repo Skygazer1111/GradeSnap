@@ -8,7 +8,6 @@
 
 import { gradeToPoints, uid } from "@/domain/cgpa/cgpa";
 import type { Subject } from "@/domain/cgpa/cgpa";
-import { extractGradesFromFile } from "@/domain/ocr/workers/paddle-worker.js";
 import { parseBoundingBoxes, parseOcrText } from "@/domain/ocr/orchestration/parser.js";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -50,6 +49,9 @@ export async function runOcr(
   let ocrResult: { text: string; items: any[]; confidence: number };
 
   try {
+    const { extractGradesFromFile } = await import(
+      "@/domain/ocr/workers/paddle-worker.js"
+    );
     ocrResult = await extractGradesFromFile(file, (status: string) => {
       if (status.includes('Loading AI')) onProgress(0, 0.5);
       else if (status.includes('Detecting')) onProgress(1, 0.3);
