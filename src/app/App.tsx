@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Users } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Hero } from "@/features/upload/Hero";
 import { UploadCard } from "@/features/upload/UploadCard";
@@ -12,6 +11,7 @@ import { TeamPage } from "@/features/about/TeamPage";
 import { TermsPage } from "@/features/about/TermsPage";
 import { PrivacyPage } from "@/features/about/PrivacyPage";
 import { Footer } from "@/components/layout/Footer";
+import { SplashScreen } from "@/components/layout/SplashScreen";
 import { computeCgpa, type Subject, type CgpaSummary } from "@/domain/cgpa/cgpa";
 import { runOcr, demoSubjects } from "@/domain/ocr/orchestration/ocr";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function App() {
+  const [appReady, setAppReady] = useState(false);
   const [stage, setStage] = useState<"idle" | "processing" | "review" | "result" | "team" | "terms" | "privacy">("idle");
   const [ocrStage, setOcrStage] = useState(0);
   const [ocrFraction, setOcrFraction] = useState(0);
@@ -95,13 +96,16 @@ export function App() {
   }, []);
 
   return (
-    <div
-      className={cn(
-        "relative flex flex-col px-4 pb-6 sm:px-6",
-        stage === "review" ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
-      )}
-    >
-      <AnimatedBackground />
+    <>
+      {!appReady && <SplashScreen onReady={() => setAppReady(true)} />}
+      <div
+        className={cn(
+          "relative flex flex-col px-4 pb-6 sm:px-6",
+          stage === "review" ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]",
+          !appReady && "invisible"
+        )}
+      >
+        <AnimatedBackground />
       <div className="shrink-0">
         <Header />
       </div>
@@ -209,5 +213,6 @@ export function App() {
 
       <Footer onTeamClick={openTeamPage} onTermsClick={openTerms} onPrivacyClick={openPrivacy} />
     </div>
+    </>
   );
 }

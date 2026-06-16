@@ -37,7 +37,7 @@ export function TermsPage({ onBack }: TermsPageProps) {
           </p>
           <h3 className="text-xl font-medium text-foreground mt-4">3. Privacy</h3>
           <p>
-            Your privacy is important to us. We process your gradesheets locally on your device or via secure OCR APIs, and we do not store your personal academic data persistently without your explicit consent.
+            Your privacy is important to us. We process your gradesheets locally on your device and we do not store your personal academic data persistently without your explicit consent.
           </p>
         </div>
       </section>

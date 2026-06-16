@@ -10,14 +10,16 @@ export function AnimatedBackground() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    
     let w = window.innerWidth;
     let h = window.innerHeight;
+    let particleCount = Math.min(120, Math.floor((w * h) / 15000));
+
     const sizeCanvas = () => {
       w = window.innerWidth;
       h = window.innerHeight;
@@ -26,50 +28,92 @@ export function AnimatedBackground() {
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      
+      // Dynamically adjust particle count based on new screen size
+      const newCount = Math.min(120, Math.floor((w * h) / 15000));
+      if (newCount > particles.length) {
+        const toAdd = newCount - particles.length;
+        for (let i = 0; i < toAdd; i++) {
+          particles.push(createParticle(Math.random() * w, Math.random() * h));
+        }
+      } else if (newCount < particles.length) {
+        particles.splice(newCount);
+      }
+      particleCount = newCount;
     };
-    sizeCanvas();
-    const count = Math.min(90, Math.floor(window.innerWidth / 16));
 
-    // Resolve the theme primary into a canvas-safe rgb() string.
-    // Canvas 2D doesn't reliably accept oklch() fillStyle, so probe via DOM.
+    // Color probe for theme sync
     const probe = document.createElement("div");
-    probe.style.cssText =
-      "position:absolute;width:0;height:0;color:var(--primary)";
+    probe.style.cssText = "position:absolute;width:0;height:0;color:var(--primary);visibility:hidden;";
     document.body.appendChild(probe);
-    const particleColor = () => {
-      probe.style.color = "var(--primary)";
-      const rgb = getComputedStyle(probe).color;
-      return rgb || "rgb(120, 200, 255)";
-    };
 
-    const particles = Array.from({ length: count }, () => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      r: Math.random() * 2.2 + 1,
-      vx: (Math.random() - 0.5) * 0.25,
-      vy: (Math.random() - 0.5) * 0.25,
-      a: Math.random() * 0.5 + 0.45,
-    }));
+    let cachedColor = "rgb(120, 200, 255)";
+    const updateColor = () => {
+      cachedColor = getComputedStyle(probe).color || cachedColor;
+    };
+    updateColor();
+
+    // Check color periodically instead of every frame to save performance
+    const colorInterval = setInterval(updateColor, 1000);
+
+    const createParticle = (x?: number, y?: number) => ({
+      x: x ?? Math.random() * w,
+      y: y ?? Math.random() * h,
+      r: Math.random() * 2 + 0.5,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      a: Math.random() * 0.5 + 0.2,
+    });
+
+    const particles = Array.from({ length: particleCount }, () => createParticle());
 
     let raf = 0;
     const render = () => {
       ctx.clearRect(0, 0, w, h);
-      const col = particleColor();
-      ctx.fillStyle = col;
-      ctx.shadowColor = col;
-      ctx.shadowBlur = 6;
-      for (const p of particles) {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0) p.x = w;
-        if (p.x > w) p.x = 0;
-        if (p.y < 0) p.y = h;
-        if (p.y > h) p.y = 0;
+      ctx.fillStyle = cachedColor;
+      ctx.strokeStyle = cachedColor;
+      ctx.shadowColor = cachedColor;
+      ctx.shadowBlur = 8;
+      
+      const connectionDistance = 120;
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        
+        if (!reduce) {
+          p.x += p.vx;
+          p.y += p.vy;
+          
+          // Smooth wrap-around
+          if (p.x < -20) p.x = w + 20;
+          if (p.x > w + 20) p.x = -20;
+          if (p.y < -20) p.y = h + 20;
+          if (p.y > h + 20) p.y = -20;
+        }
+
         ctx.globalAlpha = p.a;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
+
+        // Subtle connecting lines (Constellation effect)
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const distSq = dx * dx + dy * dy;
+          
+          if (distSq < connectionDistance * connectionDistance) {
+            const opacity = (1 - Math.sqrt(distSq) / connectionDistance) * 0.15;
+            ctx.globalAlpha = opacity;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        }
       }
+      
       ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
     };
@@ -79,17 +123,16 @@ export function AnimatedBackground() {
       raf = requestAnimationFrame(draw);
     };
 
+    sizeCanvas();
     if (!reduce) draw();
     else render();
 
-    const onResize = () => {
-      sizeCanvas();
-    };
-    window.addEventListener("resize", onResize);
+    window.addEventListener("resize", sizeCanvas);
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", sizeCanvas);
+      clearInterval(colorInterval);
       probe.remove();
     };
   }, []);
