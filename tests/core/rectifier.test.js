@@ -56,7 +56,7 @@ describe('rectifier', () => {
     );
 
     expect(fixed.credits).toBe(0);
-    expect(fixed.flagged).toBe(true);
+    expect(fixed.flagged).toBe(false);
     expect(fixed.rectified).toBe(true);
   });
 

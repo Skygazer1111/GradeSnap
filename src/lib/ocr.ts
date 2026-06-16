@@ -9,7 +9,6 @@
 import { gradeToPoints, uid, type Subject } from "./cgpa";
 import { extractGradesFromFile } from "@/ocr/paddle-worker.js";
 import { parseBoundingBoxes, parseOcrText } from "@/ocr/parser.js";
-import { toast } from "sonner";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -30,6 +29,8 @@ export const OCR_STAGES: OcrStage[] = [
 export interface OcrResult {
   rawText: string;
   subjects: Subject[];
+  confidence?: number;
+  warnings?: string[];
 }
 
 type ProgressFn = (stageIndex: number, fraction: number) => void;
@@ -45,7 +46,7 @@ export async function runOcr(
   // Stage 0: Load AI model (first run downloads ~15MB, then cached)
   onProgress(0, 0.1);
 
-  let ocrResult: { text: string; items: any[] };
+  let ocrResult: { text: string; items: any[]; confidence: number };
 
   try {
     ocrResult = await extractGradesFromFile(file, (status: string) => {
@@ -54,7 +55,7 @@ export async function runOcr(
       else if (status.includes('Processing')) onProgress(2, 0.7);
     });
   } catch (err: any) {
-    throw new Error(err.message || 'OCR failed. Please try a different image.');
+    throw new Error(err.message || 'OCR failed. Please try a different image.', { cause: err });
   }
 
   onProgress(1, 1);
@@ -86,16 +87,34 @@ export async function runOcr(
   await delay(100);
   onProgress(5, 1);
 
-  // Convert backend format → Studio Subject format
-  const subjects: Subject[] = parsedSubjects.map((row: any) => ({
-    id: row.id || uid(),
-    name: row.subject || "Subject",
-    credits: Math.round(Number(row.credits)) || 0,
-    grade: (row.grade || "A").toUpperCase(),
-    points: gradeToPoints(row.grade || "A"),
-  }));
+  const warnings: string[] = [];
+  let inferredCredits = 0;
 
-  return { rawText: ocrResult.text, subjects };
+  // Convert backend format → Studio Subject format
+  const subjects: Subject[] = parsedSubjects.map((row: any) => {
+    if (row.flagged) inferredCredits++;
+    
+    return {
+      id: row.id || uid(),
+      name: row.subject || "Subject",
+      credits: Math.round(Number(row.credits)) || 0,
+      grade: (row.grade || "A").toUpperCase(),
+      points: gradeToPoints(row.grade || "A"),
+    };
+  });
+
+  if (inferredCredits > 0) {
+    warnings.push(`${inferredCredits} credit(s) were inferred or missing.`);
+  }
+
+  // overall parse confidence in percentage
+  const confidenceScore = Math.round(ocrResult.confidence * 100) || 0;
+
+  if (confidenceScore < 85) {
+    warnings.push("Image was blurry or low quality. Please double check the results.");
+  }
+
+  return { rawText: ocrResult.text, subjects, confidence: confidenceScore, warnings };
 }
 
 /** Demo subjects for the "Try a sample" button. */

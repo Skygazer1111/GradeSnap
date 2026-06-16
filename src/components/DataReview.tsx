@@ -146,14 +146,22 @@ export function DataReview({ subjects, setSubjects, onCalculate, onBack }: DataR
                   onChange={(e) => update(s.id, { name: e.target.value })}
                   className="w-full rounded-lg bg-transparent px-2 py-2 text-sm font-medium outline-none transition-colors focus:bg-secondary"
                 />
-                <input
-                  type="number"
-                  min={0}
-                  max={12}
-                  value={s.credits}
-                  onChange={(e) => update(s.id, { credits: Number(e.target.value) })}
-                  className="w-full rounded-lg bg-transparent px-2 py-2 text-center text-sm tabular-nums outline-none transition-colors focus:bg-secondary"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    min={0}
+                    max={12}
+                    value={s.credits}
+                    onChange={(e) => update(s.id, { credits: Number(e.target.value), flagged: false })}
+                    className={cn(
+                      "w-full rounded-lg px-2 py-2 text-center text-sm tabular-nums outline-none transition-colors focus:bg-secondary",
+                      s.flagged
+                        ? "bg-warning/10 text-warning ring-1 ring-warning/40"
+                        : "bg-transparent"
+                    )}
+                    title={s.flagged ? "Credits may be missing or inferred. Please verify." : undefined}
+                  />
+                </div>
                 <div
                   className="relative rounded-lg"
                   style={{ background: gradeTint(s.points) }}

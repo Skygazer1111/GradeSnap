@@ -35,14 +35,21 @@ function xCenter(box) {
 }
 
 /**
- * Groups detected boxes into rows using Y-tolerance clustering.
+ * Groups detected boxes into rows using adaptive Y-tolerance clustering.
  *
  * @param {Array<{text: string, box: {x:number,y:number,width:number,height:number}, confidence: number}>} items
- * @param {number} yTolerance - Max vertical pixel distance to consider same row.
  * @returns {Array<Array<{text: string, box: object, confidence: number}>>}
  */
-export function groupIntoRows(items, yTolerance = 20) {
+export function groupIntoRows(items) {
   if (!items || items.length === 0) return [];
+
+  // Compute adaptive Y tolerance based on median box height, ignoring tiny noise
+  const validHeights = items.map(item => item.box.height).filter(h => h > 5).sort((a, b) => a - b);
+  const medianHeight = validHeights.length > 0 ? validHeights[Math.floor(validHeights.length / 2)] : 20;
+  // Use 40% of median height, but clamp it between sensible minimums and maximums
+  // so we don't break on extreme noise or giant headers. For 1280px downscaled images,
+  // medianHeight might be 15px, and adjacent rows might be 8px apart.
+  const yTolerance = Math.max(4, Math.min(40, medianHeight * 0.4));
 
   // Sort by Y first
   const sorted = [...items].sort((a, b) => yCenter(a.box) - yCenter(b.box));
@@ -80,8 +87,8 @@ function isNoise(text) {
   if (NOISE_RE.test(trimmed)) return true;
   if (MONTH_LINE_RE.test(trimmed)) return true;
   if (/^[=+\-\s|—_]+$/.test(trimmed)) return true;
-  // Pure numbers that look like serial/semester (1-digit or 2-digit)
-  if (/^\d{1,2}$/.test(trimmed)) return true;
+  // We do NOT filter out bare digits here because they might be valid Credits
+  // that were detected as isolated bounding boxes!
   return false;
 }
 
@@ -104,27 +111,63 @@ function generateId() {
  * @returns {{ subject: string, credits: number, grade: string, flagged: boolean } | null}
  */
 function parseRow(row, scaleId = '10') {
-  // Filter out noise tokens
-  const meaningful = row.filter(item => !isNoise(item.text));
-  if (meaningful.length < 2) return null;
+  // Filter out noise and flatten words (PaddleOCR sometimes merges "3 O PASS" into one box)
+  const words = [];
+  for (const item of row) {
+    if (isNoise(item.text)) continue;
+    
+    // Split by spaces to handle merged boxes, giving each word the parent box's confidence
+    const tokens = item.text.trim().split(/\s+/);
+    for (let token of tokens) {
+      const upper = token.toUpperCase();
+      
+      // Handle missing spaces before PASS/FAIL: e.g. "3OPASS" -> "3O", "PASS"
+      if (upper.length > 4 && /(PASS|FAIL)$/.test(upper)) {
+        const isFail = upper.endsWith("FAIL");
+        const suffixLen = isFail ? 4 : 4;
+        const pre = token.slice(0, -suffixLen);
+        
+        // If the prefix is a merged credit and grade like "3O" or "4[e]"
+        const matchMerged = pre.match(/^(\[?[0-4]\]?)([A-Za-z\+0\[\]\(\)\{\}]{1,3})$/i);
+        if (matchMerged) {
+          words.push({ text: matchMerged[1], confidence: item.confidence });
+          words.push({ text: matchMerged[2], confidence: item.confidence });
+        } else {
+          words.push({ text: pre, confidence: item.confidence });
+        }
+        words.push({ text: isFail ? "FAIL" : "PASS", confidence: item.confidence });
+        continue;
+      }
 
-  // Strategy: scan right-to-left for PASS/FAIL, grade, credits.
-  // Everything remaining is the subject name.
+      // Handle merged credit and grade: e.g. "4A+", "3O", "0O", "4[o]", "40"
+      const matchMerged = token.match(/^(\[?[0-4]\]?)([A-Za-z\+0\[\]\(\)\{\}]{1,3})$/i);
+      if (matchMerged && upper !== "PASS" && upper !== "FAIL") {
+        words.push({ text: matchMerged[1], confidence: item.confidence });
+        words.push({ text: matchMerged[2], confidence: item.confidence });
+        continue;
+      }
+
+      words.push({ text: token, confidence: item.confidence });
+    }
+  }
+
+  if (words.length < 2) return null;
+
   let gradeIdx = -1;
   let creditIdx = -1;
   let grade = null;
   let credits = null;
 
   // Walk from the right side
-  for (let i = meaningful.length - 1; i >= 0; i--) {
-    const text = meaningful[i].text.trim();
+  for (let i = words.length - 1; i >= 0; i--) {
+    const text = words[i].text.trim();
 
     // Skip PASS/FAIL at the rightmost edge
     if (/^(PASS|FAIL)$/i.test(text)) continue;
 
     // Try grade
     if (grade === null) {
-      const g = matchGrade(text, scaleId);
+      const g = matchGrade(text, scaleId, words[i].confidence);
       if (g) {
         grade = g;
         gradeIdx = i;
@@ -147,9 +190,9 @@ function parseRow(row, scaleId = '10') {
 
   // Build subject from remaining tokens
   const subjectEnd = creditIdx >= 0 ? creditIdx : gradeIdx;
-  const subjectTokens = meaningful
+  const subjectTokens = words
     .slice(0, subjectEnd)
-    .map(b => b.text.trim())
+    .map(w => w.text.trim())
     .filter(t => !COURSE_CODE_RE.test(t) && !isNoise(t));
 
   const rawSubject = subjectTokens.join(' ');

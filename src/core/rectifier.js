@@ -122,8 +122,27 @@ function subjectSimilarity(a, b) {
 export function buildOcrRowAnchors(rawOcrText) {
   if (!rawOcrText) return [];
 
+  // If rawOcrText has no newlines but has multiple PASS/FAIL (meaning it's flattened from PaddleOCR)
+  let textToProcess = rawOcrText;
+  if (!/\n/.test(rawOcrText) && (rawOcrText.match(/\bPASS\b/gi) || []).length > 1) {
+    const parts = rawOcrText.split(/\b(PASS|FAIL)\b/i);
+    const splitLines = [];
+    let currentLine = '';
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (/^(PASS|FAIL)$/i.test(part)) {
+        splitLines.push((currentLine + ' ' + part).trim());
+        currentLine = '';
+      } else {
+        currentLine += part;
+      }
+    }
+    if (currentLine.trim()) splitLines.push(currentLine.trim());
+    textToProcess = splitLines.join('\n');
+  }
+
   const anchors = [];
-  const lines = rawOcrText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const lines = textToProcess.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 
   for (const rawLine of lines) {
     const line = applyOcrGradeCreditFixes(stripGradesheetDatePrefix(rawLine))
@@ -236,7 +255,7 @@ function rectifyCredits(credits, subject, anchor) {
       : null;
 
   if (audit) {
-    return { credits: 0, flagged: true, rectified: value !== 0 };
+    return { credits: 0, flagged: false, rectified: value !== 0 };
   }
 
   if (value === 0) {

@@ -24,7 +24,7 @@ async function getService(onStatus) {
 
   _service = new PaddleOcrService({
     detection: {
-      maxSideLength: 1280,
+      maxSideLength: 1920,
     },
     processing: {
       engine: 'canvas-native', // No OpenCV dependency needed
@@ -100,7 +100,9 @@ export async function extractGrades(base64Image, mimeType, onStatus) {
     );
   }
 
-  return { text, items };
+  const overallConfidence = result.confidence || 0;
+
+  return { text, items, confidence: overallConfidence };
 }
 
 /**
@@ -108,7 +110,7 @@ export async function extractGrades(base64Image, mimeType, onStatus) {
  *
  * @param {File|Blob} file
  * @param {function} [onStatus]
- * @returns {Promise<{ text: string, items: Array<{text: string, box: object, confidence: number}> }>}
+ * @returns {Promise<{ text: string, items: Array<{text: string, box: object, confidence: number}>, confidence: number }>}
  */
 export async function extractGradesFromFile(file, onStatus) {
   const service = await getService(onStatus);
@@ -138,5 +140,7 @@ export async function extractGradesFromFile(file, onStatus) {
     );
   }
 
-  return { text, items };
+  const overallConfidence = result.confidence || 0;
+
+  return { text, items, confidence: overallConfidence };
 }

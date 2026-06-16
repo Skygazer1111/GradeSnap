@@ -94,13 +94,13 @@ export function parseCreditValue(raw) {
  */
 export function extractCreditGradePair(beforePass) {
   const gradeAtEnd = new RegExp(
-    `(\\d{1,2}|\\[0\\])\\s+(${GRADE_TOKEN})\\s*$`,
+    `(\\d{1,2}|\\[?[0-4]\\]?)\\s*(${GRADE_TOKEN})\\s*$`,
     'i'
   );
   const tail = beforePass.match(gradeAtEnd);
 
   if (tail) {
-    const credits = parseCreditValue(tail[1]);
+    const credits = parseCreditValue(tail[1].replace(/[\[\]\(\)]/g, ''));
     if (credits !== null) {
       return { credits, grade: tail[2] };
     }

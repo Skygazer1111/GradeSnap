@@ -47,9 +47,10 @@ function cleanToken(token) {
  *
  * @param {string} token - The raw text token
  * @param {string} scaleId - The grading scale to validate against (default '10')
+ * @param {number} confidence - OCR confidence (0 to 1). High confidence disables fuzzy correction.
  * @returns {string|null} - The matched canonical grade, or null if no match.
  */
-export function matchGrade(token, scaleId = '10') {
+export function matchGrade(token, scaleId = '10', confidence = 1.0) {
   if (!token) return null;
 
   const validGrades = getAvailableGrades(scaleId);
@@ -75,8 +76,9 @@ export function matchGrade(token, scaleId = '10') {
     const dist = levenshtein(cleaned, grade);
     
     // We allow a distance of 1 for most grades (e.g., 'A=' -> 'A+', '8' -> 'B')
-    // We don't want to accidentally turn 'C' into 'O' if distance is too high
-    const maxAllowedDist = grade.length === 1 ? 1 : 2; 
+    // If OCR is highly confident (>= 0.7), we trust it and disable fuzzy correction
+    // to prevent false positives (like a high-confidence "8" turning into a "B").
+    const maxAllowedDist = (confidence >= 0.7) ? 0 : (grade.length === 1 ? 1 : 2); 
 
     if (dist < minDistance && dist <= maxAllowedDist) {
       minDistance = dist;
@@ -86,8 +88,11 @@ export function matchGrade(token, scaleId = '10') {
 
   // Handle specific edge cases where fuzzy might fail
   if (!bestMatch) {
+    // We can still allow safe alias conversions even at high confidence
     if (cleaned === 'E' || cleaned === 'E0' || cleaned === 'EO') return 'O';
-    if (cleaned.includes('+') && !cleaned.includes('A') && !cleaned.includes('B') && !cleaned.includes('C')) {
+    
+    // If low confidence, do more aggressive heuristics
+    if (confidence < 0.7 && cleaned.includes('+') && !cleaned.includes('A') && !cleaned.includes('B') && !cleaned.includes('C')) {
       // e.g. "4+" or "Q+"
       if (cleaned.startsWith('4') || cleaned.startsWith('A')) return 'A+';
       if (cleaned.startsWith('8') || cleaned.startsWith('B')) return 'B+';

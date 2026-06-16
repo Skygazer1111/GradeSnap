@@ -81,7 +81,7 @@ describe('parseOcrText', () => {
     const row = parsed.find((r) => r.subject.includes('ANALYTICAL'));
     expect(row?.credits).toBe(0);
     expect(row?.grade).toBe('O');
-    expect(row?.flagged).toBe(true);
+    expect(row?.flagged).toBe(false);
   });
 
   it('parses SampleResults.png OCR text with [0] grade tokens as credits intact', () => {
@@ -98,10 +98,12 @@ describe('parseOcrText', () => {
     expect(parsed.find((r) => r.subject.includes('ANALYTICAL'))?.credits).toBe(0);
   });
 
-  it('flags zero-credit rows for manual review', () => {
-    const parsed = parseOcrText(SAMPLE_CLEAN_OCR_TEXT);
+  it('flags zero-credit rows for manual review for non-audit courses', () => {
+    const parsed = parseOcrText(
+      '1 4 21MAB204T PROBABILITY AND QUEUEING THEORY [0] O PASS'
+    );
     const zeroCredit = parsed.find((row) =>
-      subjectKey(row.subject).includes('ANALYTICAL AND LOGICAL THINKING SKILLS')
+      subjectKey(row.subject).includes('PROBABILITY AND QUEUEING THEORY')
     );
 
     expect(zeroCredit?.credits).toBe(0);

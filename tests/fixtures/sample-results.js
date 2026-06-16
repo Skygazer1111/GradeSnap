@@ -6,7 +6,7 @@ export const SAMPLE_SUBJECTS = [
   { subject: 'DIGITAL IMAGE PROCESSING', credits: 3, grade: 'A+', flagged: false },
   { subject: 'DESIGN THINKING AND METHODOLOGY', credits: 3, grade: 'O', flagged: false },
   { subject: 'SOCIAL ENGINEERING', credits: 2, grade: 'O', flagged: false },
-  { subject: 'ANALYTICAL AND LOGICAL THINKING SKILLS', credits: 0, grade: 'O', flagged: true },
+  { subject: 'ANALYTICAL AND LOGICAL THINKING SKILLS', credits: 0, grade: 'O', flagged: false },
   { subject: 'FINANCIAL TECHNOLOGIES FOUNDATIONS', credits: 3, grade: 'O', flagged: false },
 ];
 
@@ -79,7 +79,7 @@ export const SAMPLE2_SUBJECTS = [
   { subject: 'ERP SOLUTION FOR DIGITAL ENTERPRISES', credits: 3, grade: 'A+', flagged: false },
   { subject: 'DESIGN THINKING AND METHODOLOGY', credits: 3, grade: 'O', flagged: false },
   { subject: 'SOCIAL ENGINEERING', credits: 2, grade: 'O', flagged: false },
-  { subject: 'ANALYTICAL AND LOGICAL THINKING SKILLS', credits: 0, grade: 'O', flagged: true },
+  { subject: 'ANALYTICAL AND LOGICAL THINKING SKILLS', credits: 0, grade: 'O', flagged: false },
   { subject: 'FINANCIAL TECHNOLOGIES FOUNDATIONS', credits: 3, grade: 'A+', flagged: false },
 ];
 
