@@ -1,3 +1,4 @@
 1)now we have our sgpa calculator working
 now we gotta add another option to calculate GPA which is semester wise calculation
-2)we need to add an auto cropping mechanism so that if the user sends a full page or a big screenshot then it should automatically crop the image to the results section only
+where u put ur gpas till the current semester and it will calculate and gve the current cgpa 
+keep the option in the homepage and make sure the button looks well with the theme and then the gpa calculator page should also be similar to the existing theme and thats it

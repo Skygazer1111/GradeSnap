@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { Calculator } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Hero } from "@/features/upload/Hero";
 import { UploadCard } from "@/features/upload/UploadCard";
@@ -8,6 +9,7 @@ import { OcrProcessing } from "@/features/upload/OcrProcessing";
 import { DataReview } from "@/features/review/DataReview";
 import { CgpaResult } from "@/features/results/CgpaResult";
 import { TeamPage } from "@/features/about/TeamPage";
+import { SemesterCalculator } from "@/features/semester/SemesterCalculator";
 import { TermsPage } from "@/features/about/TermsPage";
 import { PrivacyPage } from "@/features/about/PrivacyPage";
 import { Footer } from "@/components/layout/Footer";
@@ -20,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 export function App() {
   const [appReady, setAppReady] = useState(false);
-  const [stage, setStage] = useState<"idle" | "processing" | "review" | "result" | "team" | "terms" | "privacy">("idle");
+  const [stage, setStage] = useState<"idle" | "processing" | "review" | "result" | "team" | "terms" | "privacy" | "semester">("idle");
   const [ocrStage, setOcrStage] = useState(0);
   const [ocrFraction, setOcrFraction] = useState(0);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -87,6 +89,10 @@ export function App() {
     setStage("team");
   }, []);
 
+  const openSemesterCalculator = useCallback(() => {
+    setStage("semester");
+  }, []);
+
   const openTerms = useCallback(() => {
     setStage("terms");
   }, []);
@@ -122,12 +128,20 @@ export function App() {
             >
               <Hero />
               <UploadCard onFile={handleFile} onDemo={handleDemo} />
-              <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
                 <button
                   onClick={handleManualEntry}
                   className="group flex items-center justify-center gap-2 rounded-xl glass-inset px-6 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-secondary/50 hover:text-foreground hover:shadow-sm sm:w-72"
                 >
                   Or enter your grades manually
+                </button>
+                <button
+                  type="button"
+                  onClick={openSemesterCalculator}
+                  className="group flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background/60 px-6 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-secondary/50 hover:text-foreground hover:shadow-sm sm:w-72"
+                >
+                  <Calculator className="h-4 w-4 text-primary" />
+                  Calculate CGPA semester-wise
                 </button>
               </div>
             </motion.div>
@@ -206,6 +220,18 @@ export function App() {
               className="flex flex-1"
             >
               <PrivacyPage onBack={reset} />
+            </motion.div>
+          )}
+
+          {stage === "semester" && (
+            <motion.div
+              key="semester"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="flex flex-1"
+            >
+              <SemesterCalculator onBack={reset} />
             </motion.div>
           )}
         </AnimatePresence>
