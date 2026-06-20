@@ -230,3 +230,61 @@ export function getOcrTargetSize(width, height, minWidth = MIN_OCR_WIDTH) {
     scale,
   };
 }
+
+/** Minimum width for browser OCR — upscaling improves detection on phone screenshots. */
+export const BROWSER_MIN_OCR_WIDTH = 2400;
+
+/**
+ * Upscales a gradesheet image in the browser before OCR.
+ * Phone screenshots are often too small for reliable text detection without upscaling.
+ *
+ * @param {ArrayBuffer} arrayBuffer
+ * @param {string} [mimeType='image/jpeg']
+ * @returns {Promise<ArrayBuffer>}
+ */
+export async function preprocessImageBufferForOcr(
+  arrayBuffer,
+  mimeType = 'image/jpeg',
+  minWidth = BROWSER_MIN_OCR_WIDTH,
+) {
+  if (typeof createImageBitmap === 'undefined') return arrayBuffer;
+
+  const blob = new Blob([arrayBuffer], { type: mimeType });
+  const bitmap = await createImageBitmap(blob);
+  const { width, height } = getOcrTargetSize(bitmap.width, bitmap.height, minWidth);
+
+  if (width === bitmap.width && height === bitmap.height) {
+    bitmap.close();
+    return arrayBuffer;
+  }
+
+  const canvas =
+    typeof OffscreenCanvas !== 'undefined'
+      ? new OffscreenCanvas(width, height)
+      : document.createElement('canvas');
+
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+
+  if (typeof canvas.convertToBlob === 'function') {
+    const out = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.92 });
+    return out.arrayBuffer();
+  }
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      async (out) => {
+        if (!out) {
+          reject(new Error('Image preprocessing failed'));
+          return;
+        }
+        resolve(await out.arrayBuffer());
+      },
+      'image/jpeg',
+      0.92,
+    );
+  });
+}

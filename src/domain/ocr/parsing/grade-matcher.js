@@ -2,8 +2,7 @@ import { getAvailableGrades } from '@/domain/cgpa/grade-mapper.js';
 
 // Common OCR mistakes that are completely different characters but visually similar
 const EXACT_ALIASES = {
-  '0O': 'O', 'OO': 'O', '0': 'O', 'S': 'O',
-  'P': 'O', // PASS often just means O in some old parsers, or we just map it.
+  '0O': 'O', 'OO': 'O', 'S': 'O',
 };
 
 /**

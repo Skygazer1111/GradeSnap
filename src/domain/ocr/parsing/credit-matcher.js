@@ -14,9 +14,8 @@ export function matchCredit(token) {
   if (!token) return null;
   const val = token.trim().toLowerCase();
 
-  // Clean token of common bracket noise
+  // Only bare digits are credits — never treat letter O as zero.
   let cleaned = val.replace(/[\[\]\(\)\{\}]/g, '');
-  if (cleaned === 'o' || cleaned === 'O' || cleaned === '©') return 0;
   
   const num = Number(cleaned);
   if (Number.isNaN(num)) return null;

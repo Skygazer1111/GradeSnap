@@ -13,14 +13,109 @@
 import { matchGrade } from './grade-matcher.js';
 import { matchCredit } from './credit-matcher.js';
 import { extractSubject } from './subject-extractor.js';
+import { isMobileDataRow, isPortalChromeSubject } from './mobile-portal.js';
 
-const COURSE_CODE_RE = /^2[1Iil][A-Za-z]{2,5}\d{2,4}[A-Za-z)]*$/i;
+const COURSE_CODE_RE = /^2[1Iil][A-Za-z]{2,5}[0-9OoIl]{2,4}[A-Za-z)]*$/i;
 
 const NOISE_RE =
   /^(S\.?\s*NO\.?|SEMESTER|COURSE\s*CODE|COURSE\s*DESCRIPTION|CREDIT|GRADE|RESULT|SUBJECT|CREDITS|CGPA|SGPA|EE)$/i;
 
 const MONTH_LINE_RE =
   /^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\s*[-–]\s*\d{2,4}/i;
+
+const MOBILE_CHROME_RE =
+  /sp\.srmist\.edu|^\d{1,2}:\d{2}\b|^program\b|^institution\b|disclaimer|indicative purpose|controller of examinations|redistribution|examinee|bibite|^student\s+portal|logout|^SRM\b/i;
+
+function normalizeCourseCode(text) {
+  return text.trim().replace(/[()[\]]/g, '');
+}
+
+function isCourseCode(text) {
+  return COURSE_CODE_RE.test(normalizeCourseCode(text));
+}
+
+function rowText(row) {
+  return row.map((item) => item.text).join(' ');
+}
+
+function rowHasCourseCode(row) {
+  return row.some((item) => isCourseCode(item.text));
+}
+
+function isNumericCreditToken(text) {
+  const cleaned = text.trim().replace(/[\[\]\(\)\{\}]/g, '');
+  return /^\d+$/.test(cleaned);
+}
+
+/** Grades are short tokens (O, A+, B+, F) — not full subject words. */
+function isLikelyGradeToken(text) {
+  const cleaned = text.trim().replace(/[\[\]\(\)\{\}]/g, '');
+  return cleaned.length > 0 && cleaned.length <= 3;
+}
+
+function isBrowserChromeRow(row) {
+  return MOBILE_CHROME_RE.test(rowText(row));
+}
+
+function isHeaderRow(row) {
+  const upper = rowText(row).toUpperCase();
+  return upper.includes('COURSE') && upper.includes('DESCRIPTION') && upper.includes('CREDIT');
+}
+
+function isContinuationRow(row) {
+  if (rowHasCourseCode(row) || isBrowserChromeRow(row) || isHeaderRow(row)) return false;
+  const text = rowText(row).trim();
+  if (!text || MONTH_LINE_RE.test(text)) return false;
+  if (/^(PASS|FAIL)$/i.test(text)) return false;
+  return /[A-Za-z]{2,}/.test(text);
+}
+
+function rowIsDataAnchor(row) {
+  return rowHasCourseCode(row) || isMobileDataRow(rowText(row));
+}
+
+/**
+ * Merges wrapped mobile-portal rows where the course description spans multiple lines.
+ */
+export function mergeWrappedRows(rows) {
+  const merged = [];
+  let buffer = null;
+
+  for (const row of rows) {
+    if (isBrowserChromeRow(row) || isHeaderRow(row)) continue;
+    if (MONTH_LINE_RE.test(rowText(row))) continue;
+
+    if (rowIsDataAnchor(row)) {
+      if (buffer) merged.push(buffer);
+      buffer = [...row];
+      continue;
+    }
+
+    if (buffer && isContinuationRow(row)) {
+      for (const item of row) {
+        const trimmed = item.text.trim();
+        if (!trimmed || isNoise(trimmed) || /^(PASS|FAIL)$/i.test(trimmed)) continue;
+        buffer.push(item);
+      }
+    }
+  }
+
+  if (buffer) merged.push(buffer);
+  return merged;
+}
+
+export function shouldUseWrappedMerge(rows) {
+  let anchorRows = 0;
+  let continuations = 0;
+
+  for (const row of rows) {
+    if (isBrowserChromeRow(row) || isHeaderRow(row)) continue;
+    if (rowIsDataAnchor(row)) anchorRows += 1;
+    else if (isContinuationRow(row)) continuations += 1;
+  }
+
+  return anchorRows >= 1 && continuations >= 1;
+}
 
 /**
  * Get the vertical centre of a box { x, y, width, height }.
@@ -158,15 +253,26 @@ function parseRow(row, scaleId = '10') {
   let grade = null;
   let credits = null;
 
-  // Walk from the right side
+  if (words.length >= 2) {
+    const last = words[words.length - 1].text.trim();
+    const prev = words[words.length - 2].text.trim();
+    const lastG = matchGrade(last, scaleId);
+    const prevG = matchGrade(prev, scaleId);
+    if (lastG && prevG && lastG === prevG) {
+      grade = lastG;
+      credits = 0;
+      gradeIdx = words.length - 1;
+      creditIdx = words.length - 2;
+    }
+  }
+
+  if (!grade) {
+  // Walk from the right — prefer letter grades before numeric credits
   for (let i = words.length - 1; i >= 0; i--) {
     const text = words[i].text.trim();
-
-    // Skip PASS/FAIL at the rightmost edge
     if (/^(PASS|FAIL)$/i.test(text)) continue;
 
-    // Try grade
-    if (grade === null) {
+    if (grade === null && !isNumericCreditToken(text) && isLikelyGradeToken(text)) {
       const g = matchGrade(text, scaleId, words[i].confidence);
       if (g) {
         grade = g;
@@ -175,30 +281,28 @@ function parseRow(row, scaleId = '10') {
       }
     }
 
-    // Try credits (must come before grade spatially = left of grade)
-    if (grade !== null && credits === null) {
+    if (credits === null && isNumericCreditToken(text)) {
       const c = matchCredit(text);
       if (c !== null) {
         credits = c;
         creditIdx = i;
-        break; // Found both, everything to the left is subject
       }
     }
+  }
   }
 
   if (!grade) return null;
 
-  // Build subject from remaining tokens
-  const subjectEnd = creditIdx >= 0 ? creditIdx : gradeIdx;
+  const usedIdx = new Set([gradeIdx, creditIdx].filter((idx) => idx >= 0));
   const subjectTokens = words
-    .slice(0, subjectEnd)
-    .map(w => w.text.trim())
-    .filter(t => !COURSE_CODE_RE.test(t) && !isNoise(t));
+    .filter((_, idx) => !usedIdx.has(idx))
+    .map((w) => w.text.trim())
+    .filter((t) => !isCourseCode(t) && !isNoise(t) && !/^(PASS|FAIL)$/i.test(t));
 
   const rawSubject = subjectTokens.join(' ');
   const subject = extractSubject(rawSubject);
 
-  if (subject.length < 4) return null;
+  if (subject.length < 4 || isPortalChromeSubject(subject)) return null;
 
   return {
     subject,
@@ -216,7 +320,10 @@ function parseRow(row, scaleId = '10') {
  * @returns {Array<{id: string, subject: string, credits: number, grade: string, flagged: boolean}>}
  */
 export function assembleSpatialRows(items, scaleId = '10') {
-  const rows = groupIntoRows(items);
+  let rows = groupIntoRows(items);
+  if (shouldUseWrappedMerge(rows)) {
+    rows = mergeWrappedRows(rows);
+  }
   const results = [];
   const seenSubjects = new Set();
 

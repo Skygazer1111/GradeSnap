@@ -7,7 +7,7 @@
  */
 
 import { assembleSpatialRows } from '@/domain/ocr/parsing/spatial-assembler.js';
-import { assembleRows } from '@/domain/ocr/parsing/row-assembler.js';
+import { assembleRows, shouldMergeMobileText } from '@/domain/ocr/parsing/row-assembler.js';
 import { rectifySubjects } from '@/domain/cgpa/rectifier.js';
 import { getAvailableGrades, getGradePoints } from '@/domain/cgpa/grade-mapper.js';
 
@@ -27,11 +27,24 @@ export function parseBoundingBoxes(items, rawText = '') {
 
   let parsedRows = assembleSpatialRows(items, '10');
 
-  // Fall back to text-based parsing if spatial assembly found nothing
-  // (e.g. if all items were on one line or the layout was unusual)
-  if (parsedRows.length < 2 && rawText) {
+  const spatialLooksTruncated =
+    parsedRows.length >= 2 &&
+    parsedRows.filter((row) => row.subject.split(/\s+/).length <= 2).length >= Math.ceil(parsedRows.length / 2);
+
+  // Fall back to text-based parsing if spatial assembly found too little,
+  // produced truncated mobile-portal subject names, or the OCR text uses
+  // wrapped mobile line layout (with or without course codes).
+  if (rawText) {
     const textRows = assembleRows(rawText, '10');
-    if (textRows.length > parsedRows.length) {
+    const lines = rawText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const mobileWrappedLayout = shouldMergeMobileText(lines);
+
+    const preferText =
+      textRows.length > parsedRows.length ||
+      spatialLooksTruncated ||
+      (mobileWrappedLayout && textRows.length >= Math.max(parsedRows.length, 2));
+
+    if (preferText) {
       parsedRows = textRows;
     }
   }

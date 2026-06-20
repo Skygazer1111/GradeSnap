@@ -6,6 +6,7 @@
  */
 
 import { PaddleOcrService } from 'ppu-paddle-ocr/web';
+import { preprocessImageBufferForOcr } from '@/domain/ocr/transforms/preprocess.js';
 
 /** @type {PaddleOcrService | null} */
 let _service = null;
@@ -77,9 +78,10 @@ export async function extractGrades(base64Image, mimeType, onStatus) {
   if (onStatus) onStatus('Detecting text regions…');
 
   const imageBuffer = base64ToArrayBuffer(base64Image, mimeType);
+  const preparedBuffer = await preprocessImageBufferForOcr(imageBuffer, mimeType);
 
   // Use the grouped result so we get line-level bounding boxes
-  const result = await service.recognize(imageBuffer, {
+  const result = await service.recognize(preparedBuffer, {
     flatten: true,
     strategy: 'per-box',
   });
@@ -118,8 +120,10 @@ export async function extractGradesFromFile(file, onStatus) {
   if (onStatus) onStatus('Detecting text regions…');
 
   const imageBuffer = await fileToArrayBuffer(file);
+  const mimeType = file.type || 'image/jpeg';
+  const preparedBuffer = await preprocessImageBufferForOcr(imageBuffer, mimeType);
 
-  const result = await service.recognize(imageBuffer, {
+  const result = await service.recognize(preparedBuffer, {
     flatten: true,
     strategy: 'per-box',
   });
