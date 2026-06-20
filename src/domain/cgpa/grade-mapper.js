@@ -16,6 +16,7 @@ export const GRADING_SCALES = {
       'B+': 7,
       B: 6,
       C: 5,
+      P: 4,
       U: 0,
       RA: 0,
       F: 0,

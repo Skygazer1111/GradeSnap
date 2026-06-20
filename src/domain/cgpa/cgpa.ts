@@ -57,7 +57,8 @@ export interface CgpaSummary {
 export const GRADE_POINTS: Record<string, number> =
   GRADING_SCALES['10'].grades;
 
-export const GRADE_OPTIONS = Object.keys(GRADING_SCALES['10'].grades);
+/** Grades shown in the review UI picker (SRM 10-point scale). */
+export const GRADE_OPTIONS: GradeKey[] = ["O", "A+", "A", "B+", "B", "C", "P", "F"];
 
 // ─── Functions ──────────────────────────────────────────────────────────────
 

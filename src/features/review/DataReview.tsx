@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, forwardRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Plus,
@@ -18,6 +18,7 @@ import {
   type Subject,
 } from "@/domain/cgpa/cgpa";
 import { cn } from "@/lib/utils";
+import { Popover } from "@/components/ui/popover";
 
 interface DataReviewProps {
   subjects: Subject[];
@@ -30,7 +31,8 @@ type SortKey = "name" | "credits" | "grade";
 
 export function DataReview({ subjects, setSubjects, onCalculate, onBack }: DataReviewProps) {
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "name", dir: 1 });
+  const [sort, setSort] = useState<{ key: SortKey | null; dir: 1 | -1 }>({ key: null, dir: 1 });
+  const [focusId, setFocusId] = useState<string | null>(null);
 
   const totals = useMemo(() => {
     const valid = subjects.filter((s) => s.credits > 0);
@@ -44,10 +46,17 @@ export function DataReview({ subjects, setSubjects, onCalculate, onBack }: DataR
     const filtered = subjects.filter((s) =>
       s.name.toLowerCase().includes(query.toLowerCase()),
     );
+    if (sort.key === null) return filtered;
+
     return [...filtered].sort((a, b) => {
       let cmp;
-      if (sort.key === "name") cmp = a.name.localeCompare(b.name);
-      else if (sort.key === "credits") cmp = a.credits - b.credits;
+      if (sort.key === "name") {
+        const aEmpty = !a.name.trim();
+        const bEmpty = !b.name.trim();
+        if (aEmpty && !bEmpty) return 1;
+        if (!aEmpty && bEmpty) return -1;
+        cmp = a.name.localeCompare(b.name);
+      } else if (sort.key === "credits") cmp = a.credits - b.credits;
       else cmp = a.points - b.points;
       return cmp * sort.dir;
     });
@@ -67,36 +76,28 @@ export function DataReview({ subjects, setSubjects, onCalculate, onBack }: DataR
   const remove = (id: string) => setSubjects(subjects.filter((s) => s.id !== id));
 
   const add = () => {
-    const names = [
-      "Machine Learning",
-      "Cloud Computing",
-      "Quantum Physics",
-      "Game Engine Architecture",
-      "Cryptography",
-      "Operating Systems",
-      "Artificial Intelligence",
-      "Computer Networks",
-      "Software Engineering",
-    ];
-    const randomName = names[Math.floor(Math.random() * names.length)];
+    const id = uid();
     setSubjects([
       ...subjects,
-      { id: uid(), name: randomName, credits: 3, grade: "A", points: gradeToPoints("A") },
+      { id, name: "", credits: 3, grade: "A", points: gradeToPoints("A") },
     ]);
+    setFocusId(id);
   };
 
   const toggleSort = (key: SortKey) =>
-    setSort((s) => (s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
+    setSort((s) =>
+      s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 },
+    );
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mx-auto flex w-full max-w-3xl flex-1 flex-col min-h-0"
+      className="mx-auto flex h-full w-full max-w-3xl min-h-0 flex-1 flex-col"
     >
-      <div className="glass-strong flex flex-1 flex-col overflow-hidden rounded-[2rem]">
+      <div className="glass-strong flex h-full min-h-0 flex-col overflow-hidden rounded-[2rem]">
         {/* header */}
-        <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className="shrink-0 flex flex-col gap-2 border-b border-border p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:p-5">
           <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={onBack}
@@ -124,13 +125,13 @@ export function DataReview({ subjects, setSubjects, onCalculate, onBack }: DataR
         </div>
 
         {/* quick counters */}
-        <div className="grid grid-cols-2 gap-3 px-4 py-3 sm:px-5">
+        <div className="shrink-0 grid grid-cols-2 gap-3 px-4 py-3 sm:px-5">
           <Counter icon={ListChecks} label="Subjects" value={totals.subjects} />
           <Counter icon={Layers} label="Total credits" value={totals.credits} />
         </div>
 
-        {/* column header */}
-        <div className="sticky top-0 z-10 grid grid-cols-[2rem_1fr_4.5rem_5rem_2.5rem] items-center gap-2 border-y border-border bg-card/50 px-4 py-2.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur sm:px-5">
+        {/* column header — desktop table only */}
+        <div className="sticky top-0 z-10 hidden shrink-0 grid-cols-[2rem_1fr_4.5rem_5rem_2.5rem] items-center gap-2 border-y border-border bg-card/50 px-4 py-2.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur sm:grid sm:px-5">
           <span className="text-center">#</span>
           <SortButton label="Subject" active={sort.key === "name"} onClick={() => toggleSort("name")} />
           <SortButton label="Credits" active={sort.key === "credits"} onClick={() => toggleSort("credits")} center />
@@ -138,11 +139,19 @@ export function DataReview({ subjects, setSubjects, onCalculate, onBack }: DataR
           <span />
         </div>
 
-        {/* rows */}
-        <div className="flex-1 overflow-y-auto px-2 py-1.5 sm:px-3 min-h-0">
+        {/* rows + add subject (scrollable) */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2 sm:px-3">
           <AnimatePresence initial={false}>
             {visible.map((s, i) => (
-              <DataReviewRow key={s.id} s={s} i={i} update={update} remove={remove} />
+              <DataReviewRow
+                key={s.id}
+                s={s}
+                i={i}
+                update={update}
+                remove={remove}
+                autoFocusName={s.id === focusId}
+                onNameFocused={() => setFocusId(null)}
+              />
             ))}
           </AnimatePresence>
 
@@ -152,27 +161,28 @@ export function DataReview({ subjects, setSubjects, onCalculate, onBack }: DataR
               No subjects {query ? "match your search" : "yet"}.
             </div>
           )}
-        </div>
 
-        {/* add row */}
-        <div className="px-3 pb-2 pt-1 sm:px-4">
-          <button
-            onClick={add}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-          >
-            <Plus className="h-4 w-4" /> Add subject
-          </button>
+          <div className="mt-2 px-1 pb-1">
+            <button
+              type="button"
+              onClick={add}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary active:scale-[0.98]"
+            >
+              <Plus className="h-4 w-4" /> Add subject
+            </button>
+          </div>
         </div>
 
         {/* reveal footer */}
-        <div className="flex flex-col gap-3 border-t border-border p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <p className="text-xs text-muted-foreground">
+        <div className="shrink-0 flex flex-col gap-3 border-t border-border bg-card/30 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <p className="text-center text-xs text-muted-foreground sm:text-left">
             Your CGPA stays hidden until you reveal it.
           </p>
           <button
+            type="button"
             onClick={onCalculate}
             disabled={totals.credits === 0}
-            className="group flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-display font-semibold text-primary-foreground transition-transform hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="group flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-6 py-3 font-display font-semibold text-primary-foreground transition-transform hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             style={{ background: "var(--gradient-text)" }}
           >
             <Sparkles className="h-4 w-4 transition-transform group-hover:rotate-12" /> Reveal my CGPA
@@ -243,140 +253,212 @@ function Counter({
   );
 }
 
-import { Popover } from "@/components/ui/popover";
-import { useRef, forwardRef } from "react";
-
 const DataReviewRow = forwardRef<HTMLDivElement, {
   s: Subject;
   i: number;
   update: (id: string, patch: Partial<Subject>) => void;
   remove: (id: string) => void;
-}>(function DataReviewRow({ s, i, update, remove }, ref) {
-  const [creditsOpen, setCreditsOpen] = useState(false);
-  const creditsRef = useRef<HTMLButtonElement>(null);
-
-  const [gradeOpen, setGradeOpen] = useState(false);
-  const gradeRef = useRef<HTMLButtonElement>(null);
-
+  autoFocusName?: boolean;
+  onNameFocused?: () => void;
+}>(function DataReviewRow({ s, i, update, remove, autoFocusName, onNameFocused }, ref) {
   return (
     <motion.div
       ref={ref}
       layout
-      initial={{ opacity: 0, height: 0, scale: 0.96 }}
-      animate={{ opacity: 1, height: "auto", scale: 1 }}
-      exit={{ opacity: 0, x: -20, height: 0, scale: 0.9, filter: "blur(4px)" }}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -12 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="group grid grid-cols-[2rem_1fr_4.5rem_5rem_2.5rem] items-center gap-2 rounded-xl border border-transparent px-2 py-1 transition-colors hover:border-border hover:bg-secondary/40 overflow-hidden"
+      className="mb-1.5 last:mb-0"
     >
-      <span className="text-center text-xs font-medium tabular-nums text-muted-foreground">
-        {i + 1}
-      </span>
-      <input
-        value={s.name}
-        onChange={(e) => update(s.id, { name: e.target.value })}
-        className="w-full rounded-lg bg-transparent px-2 py-2 text-sm font-medium outline-none transition-colors focus:bg-secondary"
-      />
+      {/* Mobile card */}
+      <div className="space-y-1.5 rounded-lg border border-border/50 bg-secondary/20 p-2 sm:hidden">
+        <div className="flex items-center gap-1.5">
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-secondary text-[0.65rem] font-bold text-muted-foreground">
+            {i + 1}
+          </span>
+          <input
+            value={s.name}
+            onChange={(e) => update(s.id, { name: e.target.value })}
+            placeholder="Subject name"
+            autoFocus={autoFocusName}
+            onFocus={autoFocusName ? onNameFocused : undefined}
+            className="min-w-0 flex-1 rounded-md bg-background/50 px-2 py-1.5 text-xs font-medium outline-none transition-colors placeholder:text-muted-foreground/60 focus:bg-background"
+          />
+          <button
+            type="button"
+            onClick={() => remove(s.id)}
+            aria-label="Delete subject"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-destructive transition-colors hover:bg-destructive/15 active:scale-95"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
 
-      {/* Credits Dropdown */}
-      <div className="relative">
-        <button
-          ref={creditsRef}
-          onClick={() => setCreditsOpen(true)}
-          title={s.flagged ? "Credits may be missing or inferred. Please verify." : undefined}
-          className={cn(
-            "w-full rounded-lg px-2 py-2 text-center text-sm tabular-nums outline-none transition-colors hover:bg-secondary active:scale-95",
-            s.flagged
-              ? "bg-warning/10 text-warning ring-1 ring-warning/40 hover:bg-warning/20"
-              : "bg-transparent",
-            creditsOpen && "bg-secondary"
-          )}
-        >
-          {s.credits}
-        </button>
-        <Popover
-          isOpen={creditsOpen}
-          onClose={() => setCreditsOpen(false)}
-          anchorRef={creditsRef}
-          align="center"
-          className="w-48 p-2"
-        >
-          <div className="grid grid-cols-3 gap-1">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 10, 12].map((c) => (
-              <button
-                key={c}
-                onClick={() => {
-                  update(s.id, { credits: c, flagged: false });
-                  setCreditsOpen(false);
-                }}
-                className={cn(
-                  "rounded-lg py-2 text-sm font-medium tabular-nums transition-colors hover:bg-secondary active:scale-95",
-                  s.credits === c && "bg-primary/20 text-primary hover:bg-primary/30"
-                )}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </Popover>
+        <div className="grid grid-cols-2 gap-1.5 pl-7">
+          <CreditsPicker s={s} update={update} compact />
+          <GradePicker s={s} update={update} compact />
+        </div>
       </div>
 
-      {/* Grade Dropdown */}
-      <div className="relative">
+      {/* Desktop table row */}
+      <div className="group hidden grid-cols-[2rem_1fr_4.5rem_5rem_2.5rem] items-center gap-2 rounded-xl border border-transparent px-2 py-1 transition-colors hover:border-border hover:bg-secondary/40 sm:grid">
+        <span className="text-center text-xs font-medium tabular-nums text-muted-foreground">
+          {i + 1}
+        </span>
+        <input
+          value={s.name}
+          onChange={(e) => update(s.id, { name: e.target.value })}
+          placeholder="Subject name"
+          autoFocus={autoFocusName}
+          onFocus={autoFocusName ? onNameFocused : undefined}
+          className="w-full rounded-lg bg-transparent px-2 py-2 text-sm font-medium outline-none transition-colors placeholder:text-muted-foreground/60 focus:bg-secondary"
+        />
+        <CreditsPicker s={s} update={update} />
+        <GradePicker s={s} update={update} />
         <button
-          ref={gradeRef}
-          onClick={() => setGradeOpen(true)}
-          className={cn(
-            "w-full rounded-lg px-2 py-2 text-center text-sm font-bold outline-none transition-transform hover:brightness-110 active:scale-95",
-            gradeOpen && "ring-2 ring-primary/50 ring-offset-2 ring-offset-background"
-          )}
-          style={{ background: gradeTint(s.points), color: gradeColor(s.points) }}
+          type="button"
+          onClick={() => remove(s.id)}
+          aria-label="Delete subject"
+          className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground opacity-60 transition-all hover:bg-destructive/15 hover:text-destructive group-hover:opacity-100 active:scale-75"
         >
-          {s.grade.toUpperCase()}
+          <Trash2 className="h-4 w-4" />
         </button>
-        <Popover
-          isOpen={gradeOpen}
-          onClose={() => setGradeOpen(false)}
-          anchorRef={gradeRef}
-          align="center"
-          className="w-48 p-2"
-        >
-          <div className="grid grid-cols-4 gap-1">
-            {GRADE_OPTIONS.map((g) => {
-              const pts = gradeToPoints(g);
-              const isSelected = s.grade.toUpperCase() === g;
-              return (
-                <button
-                  key={g}
-                  onClick={() => {
-                    update(s.id, { grade: g });
-                    setGradeOpen(false);
-                  }}
-                  className={cn(
-                    "rounded-lg py-2 text-center text-sm font-bold transition-all hover:scale-[1.05] active:scale-95",
-                    isSelected ? "ring-2 ring-primary/50" : "hover:bg-secondary"
-                  )}
-                  style={isSelected ? {
-                    background: gradeTint(pts),
-                    color: gradeColor(pts),
-                  } : {
-                    color: "var(--foreground)",
-                  }}
-                >
-                  {g}
-                </button>
-              );
-            })}
-          </div>
-        </Popover>
       </div>
-
-      <button
-        onClick={() => remove(s.id)}
-        aria-label="Delete subject"
-        className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground opacity-60 transition-all hover:bg-destructive/15 hover:text-destructive group-hover:opacity-100 active:scale-75"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
     </motion.div>
   );
 });
+
+function CreditsPicker({
+  s,
+  update,
+  compact,
+}: {
+  s: Subject;
+  update: (id: string, patch: Partial<Subject>) => void;
+  compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const anchorRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <div className={cn("relative", compact && "w-full")}>
+      <button
+        ref={anchorRef}
+        type="button"
+        onClick={() => setOpen(true)}
+        title={s.flagged ? "Credits may be missing or inferred. Please verify." : undefined}
+        className={cn(
+          "w-full rounded-md px-1.5 py-1.5 text-center text-xs tabular-nums outline-none transition-colors hover:bg-secondary active:scale-95 sm:rounded-lg sm:px-2 sm:py-2 sm:text-sm",
+          compact && "bg-background/50",
+          s.flagged
+            ? "bg-warning/10 text-warning ring-1 ring-warning/40 hover:bg-warning/20"
+            : "bg-transparent",
+          open && "bg-secondary",
+        )}
+      >
+        {compact ? `Cr: ${s.credits}` : s.credits}
+      </button>
+      <Popover
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        anchorRef={anchorRef}
+        align="center"
+        modal={compact}
+        title={compact ? "Select credits" : undefined}
+        className={compact ? undefined : "w-48 p-2"}
+      >
+        <div className={cn("grid grid-cols-4 gap-2", compact ? "p-4" : "")}>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 10, 12].map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => {
+                update(s.id, { credits: c, flagged: false });
+                setOpen(false);
+              }}
+              className={cn(
+                "rounded-lg py-2 text-sm font-medium tabular-nums transition-colors hover:bg-secondary active:scale-95",
+                s.credits === c && "bg-primary/20 text-primary hover:bg-primary/30",
+              )}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </Popover>
+    </div>
+  );
+}
+
+function GradePicker({
+  s,
+  update,
+  compact,
+}: {
+  s: Subject;
+  update: (id: string, patch: Partial<Subject>) => void;
+  compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const anchorRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <div className={cn("relative", compact && "w-full")}>
+      <button
+        ref={anchorRef}
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "w-full rounded-md px-1.5 py-1.5 text-center text-xs font-bold outline-none transition-transform hover:brightness-110 active:scale-95 sm:rounded-lg sm:px-2 sm:py-2 sm:text-sm",
+          open && "ring-2 ring-primary/50 ring-offset-1 ring-offset-background",
+        )}
+        style={{ background: gradeTint(s.points), color: gradeColor(s.points) }}
+      >
+        {compact ? s.grade.toUpperCase() : s.grade.toUpperCase()}
+      </button>
+      <Popover
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        anchorRef={anchorRef}
+        align="center"
+        modal={compact}
+        title={compact ? "Select grade" : undefined}
+        className={compact ? undefined : "w-48 p-2"}
+      >
+        <div className={cn("grid grid-cols-4 gap-2", compact ? "p-4" : "")}>
+          {GRADE_OPTIONS.map((g) => {
+            const pts = gradeToPoints(g);
+            const isSelected = s.grade.toUpperCase() === g;
+            return (
+              <button
+                key={g}
+                type="button"
+                onClick={() => {
+                  update(s.id, { grade: g });
+                  setOpen(false);
+                }}
+                className={cn(
+                  "rounded-lg py-2 text-center text-sm font-bold transition-all hover:scale-[1.05] active:scale-95",
+                  isSelected ? "ring-2 ring-primary/50" : "hover:bg-secondary",
+                )}
+                style={
+                  isSelected
+                    ? {
+                        background: gradeTint(pts),
+                        color: gradeColor(pts),
+                      }
+                    : {
+                        color: "var(--foreground)",
+                      }
+                }
+              >
+                {g}
+              </button>
+            );
+          })}
+        </div>
+      </Popover>
+    </div>
+  );
+}

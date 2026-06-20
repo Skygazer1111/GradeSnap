@@ -108,6 +108,7 @@ export function App() {
         className={cn(
           "relative flex flex-col px-4 pb-6 sm:px-6",
           stage === "review" ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]",
+          stage === "review" && "pb-0",
           !appReady && "invisible"
         )}
       >
@@ -116,7 +117,10 @@ export function App() {
         <Header />
       </div>
 
-      <main className="mx-auto mt-6 flex w-full max-w-6xl flex-1 flex-col sm:mt-10 min-h-0">
+      <main className={cn(
+        "mx-auto flex w-full max-w-6xl flex-1 flex-col min-h-0",
+        stage === "review" ? "mt-3 sm:mt-6" : "mt-6 sm:mt-10",
+      )}>
         <AnimatePresence mode="wait">
           {stage === "idle" && (
             <motion.div
@@ -237,7 +241,9 @@ export function App() {
         </AnimatePresence>
       </main>
 
-      <Footer onTeamClick={openTeamPage} onTermsClick={openTerms} onPrivacyClick={openPrivacy} />
+      {stage !== "review" && (
+        <Footer onTeamClick={openTeamPage} onTermsClick={openTerms} onPrivacyClick={openPrivacy} />
+      )}
     </div>
     </>
   );
