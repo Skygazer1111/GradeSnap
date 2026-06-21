@@ -1,33 +1,32 @@
-# 📸 GradeSnap
+# GradeSnap
 
-A fast, private, and smart SGPA calculator that extracts your grades directly from a photo of your gradesheet using completely local, in-browser AI. No data leaves your device. **No server, no uploads, 100 % private.**
+A fast, private SGPA/CGPA calculator for SRM students. Upload a screenshot of your gradesheet and GradeSnap extracts subjects, credits, and grades using **entirely local, in-browser AI** — nothing is uploaded to a server.
 
-## ✨ Features
+## Features
 
-- **Local OCR** — Tesseract.js runs entirely in the browser; your image never leaves your device.
-- **Smart Parsing** — Regex + heuristic pipeline handles noisy OCR output, bracket artifacts (`[o]`, `(e]`), and PASS-bleed tokens.
-- **Auto-Rectification** — A second-pass rectifier cross-references raw OCR text to fix misread credits and grades.
-- **Editable Data Table** — Inline-edit subjects, credits, and grades before calculating. Add or delete rows freely.
-- **SRM 10-Point Grading** — Built-in support for the SRM University grading scale (O → 10, A+ → 9, …, U/RA → 0).
-- **Result Celebration** — Animated confetti and mood banners based on your CGPA performance level.
-- **Export & Share** — Copy results to clipboard, export as PNG, or generate a shareable link.
-- **Image Preprocessing** — Upscaling, grayscale conversion, Otsu binarization, and contrast stretching for better OCR accuracy.
+- **Local OCR** — [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) runs in the browser via ONNX Runtime Web (WebGPU with WASM fallback). Your image never leaves your device.
+- **Desktop & mobile portal support** — Parses full-width desktop gradesheets and compact mobile portal screenshots, including wrapped subject names and layouts without course codes.
+- **Smart parsing** — Spatial assembly from bounding boxes, with a text-based fallback for noisy or wrapped OCR output.
+- **Auto-rectification** — A second pass cross-references raw OCR anchors (course codes, credit/grade columns) to fix misreads like `[o]`, `(e]`, and `O`/`0` confusion.
+- **Editable review screen** — Inline-edit subjects, credits, and grades on desktop or mobile. Add, delete, and reorder rows before calculating.
+- **Semester-wise CGPA** — Enter SGPA per semester to compute cumulative CGPA without a gradesheet photo.
+- **SRM 10-point grading** — Built-in scale: `O` → 10, `A+` → 9, `A` → 8, `B+` → 7, `B` → 6, `C` → 5, `P` → 4, `F` → 0.
+- **Results & export** — Animated celebration, insight cards, copy to clipboard, PNG export, and shareable links.
+- **Image preprocessing** — Phone screenshots are upscaled before OCR for more reliable text detection on small captures.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-# Clone
 git clone https://github.com/Skygazer1111/GradeSnap.git
 cd GradeSnap
 
-# Install dependencies
 npm install
-
-# Start dev server (opens http://localhost:8080)
 npm run dev
 ```
 
-## 📜 Scripts
+Opens at [http://localhost:8080](http://localhost:8080).
+
+## Scripts
 
 | Command | Description |
 |---|---|
@@ -35,76 +34,99 @@ npm run dev
 | `npm run build` | Production build to `dist/` |
 | `npm run preview` | Preview the production build locally |
 | `npm test` | Run all tests with Vitest |
-| `npm run test:sample` | Run only integration tests (real OCR on sample images) |
+| `npm run test:sample` | Run integration tests (real OCR on sample images) |
 | `npm run test:watch` | Watch mode for tests |
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
-├── index.html                  # Entry point
+├── index.html
+├── sample/                          # Gradesheet images for manual & automated testing
+│   ├── SampleResults.png            # Desktop layout
+│   ├── SampleResults2.jpeg
+│   ├── PhoneSample1.jpeg            # Mobile portal (with course codes)
+│   └── SamplePhone2.jpeg            # Mobile portal (compact, no course codes)
 ├── src/
-│   ├── app.js                  # Main orchestrator (UI flow, event wiring)
-│   ├── style.css               # Global styles & design tokens
-│   ├── core/
-│   │   ├── calculator.js       # CGPA calculation & performance levels
-│   │   ├── grade-mapper.js     # Grade symbol → grade point mapping
-│   │   └── rectifier.js        # Post-parse credit & grade correction
-│   ├── ocr/
-│   │   ├── worker.js           # Tesseract.js worker lifecycle
-│   │   ├── preprocess.js       # Image upscaling, binarization, contrast
-│   │   ├── normalize.js        # OCR text cleanup & noise removal
-│   │   └── parser.js           # Structured subject extraction from OCR text
-│   ├── ui/
-│   │   └── table.js            # Editable data table component
-│   └── services/
-│       └── exporter.js         # Clipboard, PNG export, share link
+│   ├── app/
+│   │   ├── App.tsx                  # App shell, routing between stages
+│   │   ├── main.tsx
+│   │   └── styles.css
+│   ├── components/                  # Layout & shared UI (Header, Footer, popovers)
+│   ├── domain/
+│   │   ├── cgpa/                    # CGPA calculation, grade mapping, rectifier
+│   │   │   ├── calculator.js
+│   │   │   ├── cgpa.ts              # TypeScript adapter for UI
+│   │   │   ├── grade-mapper.js
+│   │   │   ├── rectifier.js
+│   │   │   └── semester-cgpa.ts     # Semester-wise CGPA logic
+│   │   └── ocr/
+│   │       ├── orchestration/       # OCR entry points (runOcr, parser)
+│   │       ├── parsing/             # Spatial & text row assembly, mobile heuristics
+│   │       ├── transforms/          # Image preprocessing & text normalization
+│   │       └── workers/             # PaddleOCR browser worker
+│   ├── features/
+│   │   ├── upload/                  # Hero, upload card, OCR progress
+│   │   ├── review/                  # Editable subject table
+│   │   ├── results/                 # CGPA display, celebration, export
+│   │   ├── semester/                # Semester-wise calculator page
+│   │   └── about/                   # Team, terms, privacy pages
+│   ├── hooks/
+│   └── io/                          # Clipboard, PNG export, share link
 ├── tests/
-│   ├── core/                   # Unit tests for calculator, grade-mapper, rectifier
-│   ├── ocr/                    # Unit tests for parser, preprocess
-│   ├── integration/            # End-to-end OCR → parse → calculate tests
-│   ├── fixtures/               # Shared test data (sample subjects, OCR text)
-│   └── helpers/                # Test utilities (Node OCR runner with sharp)
-├── sample/                     # Sample gradesheet images for testing
-├── vite.config.js              # Vite build configuration
-└── vitest.config.js            # Vitest test configuration
+│   ├── domain/                      # Unit tests (CGPA, OCR parsing, rectifier)
+│   ├── integration/                 # End-to-end OCR → parse → calculate
+│   ├── fixtures/                    # Expected subjects & sample OCR text
+│   └── helpers/                     # Node OCR runner (sharp + PaddleOCR)
+├── vite.config.ts
+└── vitest.config.js
 ```
 
-## 🧪 Testing
+## How It Works
+
+1. **Upload** — User selects or drops a gradesheet image (JPEG, PNG, WebP).
+2. **Preprocess** — The image is upscaled in the browser so small phone screenshots are easier to read.
+3. **OCR** — PaddleOCR detects text regions and reads characters locally.
+4. **Assemble** — Bounding boxes are grouped into rows; wrapped mobile lines are merged into full subject names.
+5. **Parse** — Subject, credits, and grade are extracted per row. Text-based parsing is used when spatial output looks truncated.
+6. **Rectify** — Course-code anchors and column structure fix common OCR mistakes.
+7. **Review** — Extracted data is shown in an editable table for manual corrections.
+8. **Calculate** — Credit-weighted CGPA is computed using the SRM 10-point formula.
+9. **Celebrate** — Results are displayed with animations. Export or share as needed.
+
+### Supported gradesheet layouts
+
+| Layout | Example | Notes |
+|---|---|---|
+| Desktop / wide screenshot | `SampleResults.png` | Full table with S.No., course codes, columns |
+| Mobile portal (with codes) | `PhoneSample1.jpeg` | Wrapped descriptions, course codes present |
+| Mobile portal (compact) | `SamplePhone2.jpeg` | No course codes; credit/grade on same line as subject fragment |
+
+## Testing
 
 The test suite covers the full pipeline:
 
-- **Core tests** — CGPA calculation, grade mapping, noisy grade normalization, rectification logic.
-- **OCR tests** — Parser accuracy against clean, noisy, and preprocessed OCR text. Image preprocessing unit tests.
-- **Integration tests** — End-to-end: load a real sample image → run Tesseract OCR → parse → calculate CGPA → assert expected result.
+- **Core** — CGPA calculation, grade mapping, rectification, semester-wise CGPA.
+- **OCR** — Parser, mobile portal heuristics, subject extraction, preprocessing.
+- **Integration** — Real sample images → OCR → parse → calculate → assert expected CGPA.
 
 ```bash
-# Run all 33 tests
+# Run all 46 tests
 npm test
 
-# Run only the integration suite (requires sample images in sample/)
+# Integration tests only (requires sample/ images)
 npm run test:sample
 ```
 
-## 🔧 Tech Stack
+## Tech Stack
 
-- **[Vite](https://vitejs.dev/)** — Build tool & dev server
-- **[Tesseract.js](https://tesseract.projectnaptha.com/)** v6 — Client-side OCR engine
+- **[React 19](https://react.dev/)** + **[TypeScript](https://www.typescriptlang.org/)** — UI
+- **[Tailwind CSS 4](https://tailwindcss.com/)** — Styling
+- **[Vite 6](https://vitejs.dev/)** — Build tool & dev server
+- **[ppu-paddle-ocr](https://www.npmjs.com/package/ppu-paddle-ocr)** — In-browser OCR (PaddleOCR + ONNX Runtime Web)
 - **[Vitest](https://vitest.dev/)** — Unit & integration testing
-- **[sharp](https://sharp.pixelplumbing.com/)** — Server-side image preprocessing (test helper only)
-- **Vanilla JS + CSS** — No framework, no dependencies beyond Tesseract
+- **[sharp](https://sharp.pixelplumbing.com/)** — Image preprocessing in Node test helpers only
+- **[Motion](https://motion.dev/)** — Animations
 
-## 📝 How It Works
-
-1. **Upload** — User drops or selects a gradesheet image (JPEG, PNG, WebP).
-2. **Preprocess** — The image is upscaled, flattened to grayscale, and binarized for cleaner OCR.
-3. **OCR** — Tesseract.js extracts raw text from the preprocessed image.
-4. **Normalize** — OCR noise is cleaned: bracket artifacts, stray characters, and encoding glitches are removed.
-5. **Parse** — Regex patterns extract structured rows: subject name, credits, grade, pass/fail status.
-6. **Rectify** — A second pass cross-references raw OCR anchors (course codes, credit columns) to fix misreads.
-7. **Review** — The extracted data is shown in an editable table. Users can correct any remaining errors.
-8. **Calculate** — Credit-weighted CGPA is computed using the SRM 10-point formula.
-9. **Celebrate** — Results are displayed with animations and mood banners. Export as PNG or share via link.
-
-## 📄 License
+## License
 
 Private project.
