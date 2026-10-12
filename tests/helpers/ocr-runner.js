@@ -4,7 +4,7 @@
  * bounding-box data.
  */
 
-import { PaddleOcrService } from 'ppu-paddle-ocr';
+import { PaddleOcrService, V5_EN_MOBILE_MODEL } from 'ppu-paddle-ocr';
 import sharp from 'sharp';
 import {
   getOcrTargetSize,
@@ -15,8 +15,18 @@ let _service = null;
 async function getService() {
   if (_service) return _service;
   _service = new PaddleOcrService({
+    // Keep the English model used to validate gradesheet extraction.
+    model: V5_EN_MOBILE_MODEL,
     detection: {
       maxSideLength: 1280,
+      minimumAreaThreshold: 50,
+    },
+    recognition: {
+      // Read narrow grade cells separately and retain low-confidence anchors.
+      recBatchSize: 1,
+      minimumConfidence: 0,
+      rotateVerticalCrops: false,
+      maxCropSourceSideLength: Infinity,
     },
   });
   await _service.initialize();
@@ -73,11 +83,12 @@ export async function runOcrOnImageWithBoxes(imagePath) {
     imageBuffer.byteOffset + imageBuffer.byteLength
   );
 
-  const result = await service.recognize(arrayBuffer, { flatten: true, strategy: 'per-box' });
+  // Grouped text preserves line breaks needed to merge wrapped mobile subjects.
+  const result = await service.recognize(arrayBuffer, { strategy: 'per-box' });
 
   return {
     text: result?.text?.trim() || '',
-    items: result.results.map(r => ({
+    items: result.lines.flat().map(r => ({
       text: r.text,
       box: r.box,
       confidence: r.confidence,

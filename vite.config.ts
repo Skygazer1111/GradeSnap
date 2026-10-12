@@ -10,7 +10,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
   server: {
@@ -24,26 +24,24 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules/onnxruntime-web')) {
-            return 'onnxruntime';
-          }
-          if (id.includes('ppu-paddle-ocr')) {
-            return 'paddle-ocr';
-          }
+        codeSplitting: {
+          groups: [
+            { name: 'onnxruntime', test: /node_modules[\\/]onnxruntime-web/ },
+            { name: 'paddle-ocr', test: /node_modules[\\/]ppu-paddle-ocr/ },
+          ],
         },
       },
     },
   },
-  esbuild: {
+  oxc: {
     target: 'es2022',
   },
   optimizeDeps: {
     exclude: ['onnxruntime-web'],
-    esbuildOptions: {
-      target: 'es2022',
+    rolldownOptions: {
+      transform: { target: 'es2022' },
     },
   },
 });

@@ -1,4 +1,5 @@
-import { ArrowLeft, Github, Linkedin } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { Github, Linkedin } from "@/components/ui/social-icons";
 
 interface TeamPageProps {
   onBack: () => void;

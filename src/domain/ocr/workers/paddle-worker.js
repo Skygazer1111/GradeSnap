@@ -5,7 +5,7 @@
  * Runs entirely in the browser — no data leaves the client.
  */
 
-import { PaddleOcrService } from 'ppu-paddle-ocr/web';
+import { PaddleOcrService, V5_EN_MOBILE_MODEL } from 'ppu-paddle-ocr/web';
 import { preprocessImageBufferForOcr } from '@/domain/ocr/transforms/preprocess.js';
 
 /** @type {PaddleOcrService | null} */
@@ -24,8 +24,18 @@ async function getService(onStatus) {
   if (onStatus) onStatus('Loading AI model…');
 
   _service = new PaddleOcrService({
+    // The v6 tiny default loses grades and rows in the sample gradesheets.
+    model: V5_EN_MOBILE_MODEL,
     detection: {
       maxSideLength: 1920,
+      minimumAreaThreshold: 50,
+    },
+    recognition: {
+      // Read narrow grade cells separately and retain low-confidence anchors.
+      recBatchSize: 1,
+      minimumConfidence: 0,
+      rotateVerticalCrops: false,
+      maxCropSourceSideLength: Infinity,
     },
     processing: {
       engine: 'canvas-native', // No OpenCV dependency needed
@@ -80,15 +90,14 @@ export async function extractGrades(base64Image, mimeType, onStatus) {
   const imageBuffer = base64ToArrayBuffer(base64Image, mimeType);
   const preparedBuffer = await preprocessImageBufferForOcr(imageBuffer, mimeType);
 
-  // Use the grouped result so we get line-level bounding boxes
+  // Keep grouped text line breaks for wrapped mobile subjects.
   const result = await service.recognize(preparedBuffer, {
-    flatten: true,
     strategy: 'per-box',
   });
 
   if (onStatus) onStatus('Processing results…');
 
-  const items = result.results.map(r => ({
+  const items = result.lines.flat().map(r => ({
     text: r.text,
     box: r.box,
     confidence: r.confidence,
@@ -124,13 +133,12 @@ export async function extractGradesFromFile(file, onStatus) {
   const preparedBuffer = await preprocessImageBufferForOcr(imageBuffer, mimeType);
 
   const result = await service.recognize(preparedBuffer, {
-    flatten: true,
     strategy: 'per-box',
   });
 
   if (onStatus) onStatus('Processing results…');
 
-  const items = result.results.map(r => ({
+  const items = result.lines.flat().map(r => ({
     text: r.text,
     box: r.box,
     confidence: r.confidence,

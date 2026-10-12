@@ -16,6 +16,8 @@ A fast, private SGPA/CGPA calculator for SRM students. Upload a screenshot of yo
 
 ## Quick Start
 
+Use Node.js 22.12+ (22.x), 24.x, or 26+. Node.js 24 LTS is recommended.
+
 ```bash
 git clone https://github.com/Skygazer1111/GradeSnap.git
 cd GradeSnap
@@ -36,6 +38,8 @@ Opens at [http://localhost:8080](http://localhost:8080).
 | `npm test` | Run all tests with Vitest |
 | `npm run test:sample` | Run integration tests (real OCR on sample images) |
 | `npm run test:watch` | Watch mode for tests |
+| `npm run typecheck` | Check TypeScript without emitting files |
+| `npm run lint` | Check code with ESLint |
 
 ## Project Structure
 
@@ -121,11 +125,18 @@ npm run test:sample
 
 - **[React 19](https://react.dev/)** + **[TypeScript](https://www.typescriptlang.org/)** — UI
 - **[Tailwind CSS 4](https://tailwindcss.com/)** — Styling
-- **[Vite 6](https://vitejs.dev/)** — Build tool & dev server
+- **[Vite 8](https://vite.dev/)** — Build tool & dev server (Rolldown + Oxc)
 - **[ppu-paddle-ocr](https://www.npmjs.com/package/ppu-paddle-ocr)** — In-browser OCR (PaddleOCR + ONNX Runtime Web)
 - **[Vitest](https://vitest.dev/)** — Unit & integration testing
 - **[sharp](https://sharp.pixelplumbing.com/)** — Image preprocessing in Node test helpers only
 - **[Motion](https://motion.dev/)** — Animations
+
+PaddleOCR 6 uses the explicit `V5_EN_MOBILE_MODEL` preset for gradesheet accuracy.
+Recognition runs one box at a time, retains low-confidence grade anchors, and
+preserves full image resolution and line breaks for wrapped mobile subjects.
+The Node integration tests use `onnxruntime-node`; the app uses `onnxruntime-web`.
+
+TypeScript stays on 6.x to match the supported range of `typescript-eslint`.
 
 ## License
 

@@ -1,4 +1,4 @@
-import { Github, Linkedin } from "lucide-react";
+import { Github, Linkedin } from "@/components/ui/social-icons";
 
 interface TeamMemberProps {
   name: string;
