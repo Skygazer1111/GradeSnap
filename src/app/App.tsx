@@ -78,6 +78,11 @@ export function App() {
     toast.success("CGPA Calculated!");
   }, [subjects]);
 
+  const handleEditSubjects = useCallback(() => {
+    setSummary(null);
+    setStage("review");
+  }, []);
+
   const reset = useCallback(() => {
     setStage("idle");
     setSubjects([]);
@@ -191,7 +196,7 @@ export function App() {
               exit={{ opacity: 0, scale: 1.05 }}
               className="pb-10"
             >
-              <CgpaResult summary={summary} onReset={reset} />
+              <CgpaResult summary={summary} onBack={handleEditSubjects} onReset={reset} />
             </motion.div>
           )}
 

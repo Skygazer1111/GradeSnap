@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { motion } from "motion/react";
-import { Sparkles, Trophy, Star } from "lucide-react";
+import { ArrowLeft, Sparkles, Trophy, Star } from "lucide-react";
 import type { CgpaSummary } from "@/domain/cgpa/cgpa";
 import { CountUp } from "@/components/ui/CountUp";
 import { ScoreMeter } from "./ScoreMeter";
@@ -10,10 +10,11 @@ import { ExportBar } from "./ExportBar";
 
 interface CgpaResultProps {
   summary: CgpaSummary;
+  onBack: () => void;
   onReset: () => void;
 }
 
-export function CgpaResult({ summary, onReset }: CgpaResultProps) {
+export function CgpaResult({ summary, onBack, onReset }: CgpaResultProps) {
   const captureRef = useRef<HTMLDivElement>(null);
   const { classification: cls } = summary;
 
@@ -26,6 +27,15 @@ export function CgpaResult({ summary, onReset }: CgpaResultProps) {
       {/* hero result card (captured for PNG export) */}
       <div ref={captureRef} className="glass-strong relative overflow-hidden rounded-[2rem] p-6 sm:p-10">
         <Celebration tier={cls.tier} />
+
+        <button
+          type="button"
+          onClick={onBack}
+          className="relative z-10 mb-6 inline-flex items-center gap-2 rounded-xl bg-secondary px-3 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Back to edit subjects
+        </button>
 
         <div className="relative z-10 flex flex-col items-center gap-8 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col items-center text-center md:items-start md:text-left">
