@@ -3,8 +3,10 @@ import { classify, type Classification } from "@/domain/cgpa/cgpa";
 
 export interface SemesterEntry {
   id: string;
+  semester?: number;
   sgpa: string;
   credits: string;
+  qualityPoints?: number;
 }
 
 export interface SemesterCgpaResult {
@@ -47,7 +49,10 @@ export function computeSemesterCgpa(entries: SemesterEntry[]): SemesterCgpaResul
   let totalCredits = 0;
 
   for (const row of valid) {
-    totalQualityPoints += row.sgpa * row.credits;
+    // Saved subject calculations retain their original points to avoid rounding twice.
+    const points = row.entry.qualityPoints;
+    totalQualityPoints += Number.isFinite(points) && points >= 0
+      && Math.abs(points / row.credits - row.sgpa) < 0.0051 ? points : row.sgpa * row.credits;
     totalCredits += row.credits;
   }
 

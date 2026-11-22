@@ -10,6 +10,7 @@ A fast, private SGPA/CGPA calculator for SRM students. Upload a screenshot of yo
 - **Auto-rectification** — A second pass cross-references raw OCR anchors (course codes, credit/grade columns) to fix misreads like `[o]`, `(e]`, and `O`/`0` confusion.
 - **Editable review screen** — Inline-edit subjects, credits, and grades on desktop or mobile. Add, delete, and reorder rows before calculating.
 - **Semester-wise CGPA** — Enter SGPA per semester to compute cumulative CGPA without a gradesheet photo.
+- **Saved calculations** — Save a GPA with its semester number or an overall CGPA locally. Revisit results on the home screen, delete them, and reuse saved semester GPAs with their credit weights in the overall calculator. Saving an existing semester updates its result. Nothing syncs to a server; clearing browser site data removes saved results.
 - **SRM 10-point grading** — Built-in scale: `O` → 10, `A+` → 9, `A` → 8, `B+` → 7, `B` → 6, `C` → 5, `P` → 4, `F` → 0.
 - **Results & export** — Animated celebration, insight cards, copy to clipboard, PNG export, and shareable links.
 - **Image preprocessing** — Phone screenshots are upscaled before OCR for more reliable text detection on small captures.

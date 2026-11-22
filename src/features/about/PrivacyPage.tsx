@@ -29,11 +29,11 @@ export function PrivacyPage({ onBack }: PrivacyPageProps) {
           </p>
           <h3 className="text-xl font-medium text-foreground mt-4">Information We Collect</h3>
           <p>
-            When you upload a gradesheet, the image is processed to extract your grades. We do not store or collect these images or the extracted academic data on our servers. All processing happens either locally or is sent securely to an OCR provider purely for text extraction.
+            When you upload a gradesheet, the image is processed locally in your browser to extract your grades. We do not upload your images or extracted academic data to a server or OCR provider.
           </p>
           <h3 className="text-xl font-medium text-foreground mt-4">How We Use Your Information</h3>
           <p>
-            The extracted data is used solely to compute your CGPA within the browser session. Once you close the application or refresh the page, the data is lost.
+            The extracted data is used to compute your GPA or CGPA in your browser. If you choose Save locally, we store the result, semester number, credits, quality points, and save date in this browser's local storage so you can revisit it and calculate your overall CGPA. Saved results remain after refreshing or closing the app. You can delete them from Saved calculations; clearing site data also removes them. They do not sync across browsers or devices. Unsaved calculations and uploaded images are not retained.
           </p>
           <h3 className="text-xl font-medium text-foreground mt-4">Changes</h3>
           <p>

@@ -7,6 +7,7 @@ import {
   Calculator,
   GraduationCap,
   Layers,
+  Save,
 } from "lucide-react";
 import { uid } from "@/domain/cgpa/cgpa";
 import {
@@ -17,20 +18,24 @@ import {
 import { CountUp } from "@/components/ui/CountUp";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useSavedCalculations } from "@/hooks/use-saved-calculations";
+import { savedSemesterEntries } from "@/io/saved-calculations";
+import { SaveCalculation } from "@/features/results/SaveCalculation";
 
 interface SemesterCalculatorProps {
   onBack: () => void;
 }
 
-function emptySemester(): SemesterEntry {
-  return { id: uid(), sgpa: "", credits: "" };
+function emptySemester(semester: number): SemesterEntry {
+  return { id: uid(), semester, sgpa: "", credits: "" };
 }
 
 export function SemesterCalculator({ onBack }: SemesterCalculatorProps) {
-  const [semesters, setSemesters] = useState<SemesterEntry[]>([
-    emptySemester(),
-    emptySemester(),
-  ]);
+  const { records, error: storageError, saveMany } = useSavedCalculations();
+  const [semesters, setSemesters] = useState<SemesterEntry[]>(() => {
+    const saved = savedSemesterEntries(records);
+    return saved.length ? saved : [emptySemester(1), emptySemester(2)];
+  });
   const [result, setResult] = useState<SemesterCgpaResult | null>(null);
 
   const filledCount = useMemo(
@@ -39,12 +44,15 @@ export function SemesterCalculator({ onBack }: SemesterCalculatorProps) {
   );
 
   const update = (id: string, patch: Partial<SemesterEntry>) => {
-    setSemesters((rows) => rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+    setSemesters((rows) => rows.map((row) => (row.id === id ? {
+      ...row, ...patch,
+      qualityPoints: patch.sgpa !== undefined || patch.credits !== undefined ? undefined : row.qualityPoints,
+    } : row)));
     setResult(null);
   };
 
   const addSemester = () => {
-    setSemesters((rows) => [...rows, emptySemester()]);
+    setSemesters((rows) => [...rows, emptySemester(Math.max(0, ...rows.map((row) => row.semester || 0)) + 1)]);
     setResult(null);
   };
 
@@ -54,6 +62,17 @@ export function SemesterCalculator({ onBack }: SemesterCalculatorProps) {
   };
 
   const handleCalculate = () => {
+    const filled = semesters.filter((row) => row.sgpa.trim() !== "");
+    if (filled.some((row) => !Number.isSafeInteger(row.semester) || row.semester < 1)
+      || new Set(filled.map((row) => row.semester)).size !== filled.length) {
+      toast.error("Use a unique positive semester number for each row");
+      return;
+    }
+    if (filled.some((row) => !Number.isFinite(Number(row.sgpa)) || Number(row.sgpa) < 0 || Number(row.sgpa) > 10
+      || (row.credits.trim() !== "" && (!Number.isFinite(Number(row.credits)) || Number(row.credits) <= 0)))) {
+      toast.error("Enter SGPAs from 0 to 10 and positive credits");
+      return;
+    }
     const computed = computeSemesterCgpa(semesters);
     if (!computed) {
       toast.error("Enter at least one valid SGPA between 0 and 10");
@@ -61,6 +80,25 @@ export function SemesterCalculator({ onBack }: SemesterCalculatorProps) {
     }
     setResult(computed);
     toast.success("CGPA calculated!");
+  };
+
+  const loadSaved = () => {
+    setSemesters(savedSemesterEntries(records));
+    setResult(null);
+    toast.success("Loaded saved semester GPAs");
+  };
+
+  const saveSemesters = () => {
+    try {
+      saveMany(semesters.filter((row) => row.sgpa.trim() !== "").map((row) => {
+        const credits = row.credits.trim() === "" ? 1 : Number(row.credits);
+        return { kind: 'semester', semester: row.semester, gpa: Number(row.sgpa), credits,
+          qualityPoints: row.qualityPoints ?? Number(row.sgpa) * credits };
+      }));
+      toast.success("Semester GPAs saved on this browser");
+    } catch {
+      toast.error("Could not save semester GPAs. Check browser storage is available.");
+    }
   };
 
   return (
@@ -85,6 +123,14 @@ export function SemesterCalculator({ onBack }: SemesterCalculatorProps) {
           </p>
         </div>
       </div>
+
+      {records.some((row) => row.kind === 'semester') && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+          <p>Your saved semester GPAs are available below. You can edit them before calculating.</p>
+          <button type="button" onClick={loadSaved} className="rounded-xl bg-secondary px-4 py-2 font-medium text-secondary-foreground">Reload saved semesters</button>
+        </div>
+      )}
+      {storageError && <p role="alert" className="mb-4 text-sm text-destructive">{storageError}</p>}
 
       <div className="glass-strong overflow-hidden rounded-[2rem]">
         <div className="border-b border-border p-4 sm:p-5">
@@ -114,16 +160,19 @@ export function SemesterCalculator({ onBack }: SemesterCalculatorProps) {
                 className="grid grid-cols-1 gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center sm:px-5"
               >
                 <div className="flex items-center gap-2">
-                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-secondary text-xs font-bold text-secondary-foreground">
-                    {index + 1}
-                  </span>
-                  <span className="text-sm font-medium sm:hidden">Semester {index + 1}</span>
-                  <span className="hidden text-sm font-medium sm:inline">Semester {index + 1}</span>
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <span className="sm:sr-only">Semester</span>
+                    <input type="number" min={1} step={1} inputMode="numeric" value={row.semester || ''}
+                      aria-label={`Semester number for row ${index + 1}`}
+                      onChange={(event) => update(row.id, { semester: Number(event.target.value) })}
+                      className="w-20 rounded-xl border border-input bg-background/60 px-3 py-2.5 outline-none focus:border-primary" />
+                  </label>
                 </div>
 
                 <label className="flex flex-col gap-1 sm:contents">
                   <span className="text-xs text-muted-foreground sm:hidden">SGPA</span>
                   <input
+                    aria-label={`SGPA for semester ${row.semester}`}
                     type="number"
                     min={0}
                     max={10}
@@ -139,10 +188,11 @@ export function SemesterCalculator({ onBack }: SemesterCalculatorProps) {
                 <label className="flex flex-col gap-1 sm:contents">
                   <span className="text-xs text-muted-foreground sm:hidden">Credits (optional)</span>
                   <input
+                    aria-label={`Credits for semester ${row.semester}`}
                     type="number"
                     min={1}
-                    step={1}
-                    inputMode="numeric"
+                    step="any"
+                    inputMode="decimal"
                     placeholder="Default: 1"
                     value={row.credits}
                     onChange={(e) => update(row.id, { credits: e.target.value })}
@@ -160,7 +210,7 @@ export function SemesterCalculator({ onBack }: SemesterCalculatorProps) {
                       ? "cursor-not-allowed text-muted-foreground/40"
                       : "bg-destructive/10 text-destructive hover:bg-destructive/20",
                   )}
-                  aria-label={`Remove semester ${index + 1}`}
+                  aria-label={`Remove semester ${row.semester}`}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -191,12 +241,10 @@ export function SemesterCalculator({ onBack }: SemesterCalculatorProps) {
         </div>
       </div>
 
-      <AnimatePresence>
-        {result && (
+      {result && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
             className="glass-strong mt-6 overflow-hidden rounded-[2rem] p-6 sm:p-8"
           >
             <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
@@ -225,9 +273,20 @@ export function SemesterCalculator({ onBack }: SemesterCalculatorProps) {
                 <StatCard label="Total credits" value={String(result.totalCredits)} />
               </div>
             </div>
+            <div className="mt-6 border-t border-border pt-5">
+              <button type="button" onClick={saveSemesters} disabled={Boolean(storageError)}
+                className="inline-flex items-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-secondary-foreground disabled:opacity-50">
+                <Save className="h-4 w-4" /> Save semester GPAs locally
+              </button>
+              <p className="mt-2 text-xs text-muted-foreground">Saves each filled semester separately and updates matching semester numbers. Blank credits use a weight of 1.</p>
+            </div>
+            <div className="mt-5">
+              <SaveCalculation key={`${result.cgpa}-${result.totalCredits}`} cumulative gpa={result.cgpa}
+                credits={result.totalCredits} qualityPoints={result.totalQualityPoints}
+                defaultSemester={Math.max(...semesters.filter((row) => row.sgpa.trim() !== '').map((row) => row.semester))} />
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+      )}
     </motion.div>
   );
 }

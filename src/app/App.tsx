@@ -10,6 +10,7 @@ import { DataReview } from "@/features/review/DataReview";
 import { CgpaResult } from "@/features/results/CgpaResult";
 import { TeamPage } from "@/features/about/TeamPage";
 import { SemesterCalculator } from "@/features/semester/SemesterCalculator";
+import { SavedCalculations } from "@/features/semester/SavedCalculations";
 import { TermsPage } from "@/features/about/TermsPage";
 import { PrivacyPage } from "@/features/about/PrivacyPage";
 import { Footer } from "@/components/layout/Footer";
@@ -157,6 +158,7 @@ export function App() {
                   Calculate CGPA semester-wise
                 </button>
               </div>
+              <SavedCalculations onUseSemesters={openSemesterCalculator} />
             </motion.div>
           )}
 

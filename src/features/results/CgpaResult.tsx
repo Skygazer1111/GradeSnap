@@ -7,6 +7,7 @@ import { ScoreMeter } from "./ScoreMeter";
 import { Celebration } from "./Celebration";
 import { InsightCards } from "./InsightCards";
 import { ExportBar } from "./ExportBar";
+import { SaveCalculation } from "./SaveCalculation";
 
 interface CgpaResultProps {
   summary: CgpaSummary;
@@ -86,6 +87,7 @@ export function CgpaResult({ summary, onBack, onReset }: CgpaResultProps) {
       <InsightCards summary={summary} />
 
       <ExportBar summary={summary} captureRef={captureRef} onReset={onReset} />
+      <SaveCalculation gpa={summary.cgpa} credits={summary.totalCredits} qualityPoints={summary.weightedPoints} />
     </motion.div>
   );
 }
