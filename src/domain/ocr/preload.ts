@@ -4,8 +4,7 @@
  *
  * Call `preloadOcr()` as early as possible (e.g. on app mount).
  * Call `getPreloadStatus()` to poll readiness.
- * The paddle-worker singleton pattern means the service won't
- * be initialised twice — once warm, `getService()` returns instantly.
+ * The paddle-worker singleton shares initialization with uploads.
  */
 
 let _status: 'idle' | 'loading' | 'ready' | 'error' = 'idle';
@@ -19,47 +18,28 @@ function notify() {
 
 /**
  * Kick off model download + ONNX runtime init in the background.
- * Safe to call multiple times — only runs once.
+ * Safe to call multiple times. Failed downloads can be retried.
  */
 export function preloadOcr(): Promise<void> {
   if (_promise) return _promise;
 
   _status = 'loading';
+  _error = null;
   notify();
 
   _promise = (async () => {
     try {
-      // Dynamic import so Vite tree-shakes if unused,
-      // but here we intentionally pull it in eagerly.
-      const { extractGradesFromFile } = await import(
+      const { initializeOcr } = await import(
         '@/domain/ocr/workers/paddle-worker.js'
       );
-
-      // Create a tiny 1×1 transparent PNG to force full model init
-      // without processing a real image. This warms up:
-      //   - ONNX Runtime (WASM/WebGPU)
-      //   - Detection model
-      //   - Recognition model
-      const canvas = new OffscreenCanvas(1, 1);
-      const ctx = canvas.getContext('2d')!;
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, 1, 1);
-      const blob = await canvas.convertToBlob({ type: 'image/png' });
-      const file = new File([blob], 'warmup.png', { type: 'image/png' });
-
-      // Run a throwaway recognition — the model is now cached in memory
-      try {
-        await extractGradesFromFile(file, () => {});
-      } catch {
-        // The warmup image will produce no text — that's expected.
-        // The important thing is the model is loaded.
-      }
+      await initializeOcr();
 
       _status = 'ready';
       notify();
     } catch (err: any) {
       _error = err;
       _status = 'error';
+      _promise = null;
       notify();
       // Don't rethrow — the app should still be usable; the model
       // will be loaded lazily when the user actually uploads.

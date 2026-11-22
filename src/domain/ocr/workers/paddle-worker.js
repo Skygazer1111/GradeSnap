@@ -8,22 +8,22 @@
 import { PaddleOcrService, V5_EN_MOBILE_MODEL } from 'ppu-paddle-ocr/web';
 import { preprocessImageBufferForOcr } from '@/domain/ocr/transforms/preprocess.js';
 
-/** @type {PaddleOcrService | null} */
-let _service = null;
+/** @type {Promise<PaddleOcrService> | null} */
+let _servicePromise = null;
 
 /**
  * Lazily initializes the PaddleOCR service (singleton).
- * Models are downloaded on first use and cached in IndexedDB.
+ * Concurrent callers wait for the same initialization. Failed loads can retry.
  *
  * @param {function} [onStatus] - Optional status callback for UI updates.
  * @returns {Promise<PaddleOcrService>}
  */
-async function getService(onStatus) {
-  if (_service) return _service;
+export function initializeOcr(onStatus) {
+  if (_servicePromise) return _servicePromise;
 
   if (onStatus) onStatus('Loading AI model…');
 
-  _service = new PaddleOcrService({
+  const service = new PaddleOcrService({
     // The v6 tiny default loses grades and rows in the sample gradesheets.
     model: V5_EN_MOBILE_MODEL,
     detection: {
@@ -42,9 +42,11 @@ async function getService(onStatus) {
     },
   });
 
-  await _service.initialize();
-
-  return _service;
+  _servicePromise = service.initialize().then(() => service).catch((error) => {
+    _servicePromise = null;
+    throw error;
+  });
+  return _servicePromise;
 }
 
 /**
@@ -83,7 +85,7 @@ function base64ToArrayBuffer(base64, mimeType) {
  * @returns {Promise<{ text: string, items: Array<{text: string, box: {x:number,y:number,width:number,height:number}, confidence: number}> }>}
  */
 export async function extractGrades(base64Image, mimeType, onStatus) {
-  const service = await getService(onStatus);
+  const service = await initializeOcr(onStatus);
 
   if (onStatus) onStatus('Detecting text regions…');
 
@@ -124,7 +126,7 @@ export async function extractGrades(base64Image, mimeType, onStatus) {
  * @returns {Promise<{ text: string, items: Array<{text: string, box: object, confidence: number}>, confidence: number }>}
  */
 export async function extractGradesFromFile(file, onStatus) {
-  const service = await getService(onStatus);
+  const service = await initializeOcr(onStatus);
 
   if (onStatus) onStatus('Detecting text regions…');
 

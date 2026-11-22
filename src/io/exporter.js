@@ -4,7 +4,7 @@
  * shareable URL generation, and share link parsing.
  */
 
-import { getPerformanceLabel } from '../core/calculator.js';
+import { getPerformanceLabel } from '../domain/cgpa/calculator.js';
 
 // ─── Helper ────────────────────────────────────────────────────────────────────
 

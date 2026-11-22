@@ -114,7 +114,7 @@ The test suite covers the full pipeline:
 - **Integration** — Real sample images → OCR → parse → calculate → assert expected CGPA.
 
 ```bash
-# Run all 46 tests
+# Run all tests
 npm test
 
 # Integration tests only (requires sample/ images)

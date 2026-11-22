@@ -52,8 +52,8 @@ export function SplashScreen({ onReady }: SplashScreenProps) {
 
       const elapsed = ts - startTs;
 
-      if (modelReadyRef.current) {
-        // Model is ready — quickly fill to 100%
+      if (modelReadyRef.current || elapsed >= 8000) {
+        // Let users access manual entry while a slow download continues.
         setProgress((prev) => {
           const next = prev + (100 - prev) * 0.15;
           if (next >= 99.5) {
