@@ -280,7 +280,7 @@ const DataReviewRow = forwardRef<HTMLDivElement, {
           <input
             value={s.name}
             onChange={(e) => update(s.id, { name: e.target.value })}
-            placeholder="Subject name"
+            placeholder="Subject name (optional)"
             autoFocus={autoFocusName}
             onFocus={autoFocusName ? onNameFocused : undefined}
             className="min-w-0 flex-1 rounded-md bg-background/50 px-2 py-1.5 text-xs font-medium outline-none transition-colors placeholder:text-muted-foreground/60 focus:bg-background"
@@ -309,7 +309,7 @@ const DataReviewRow = forwardRef<HTMLDivElement, {
         <input
           value={s.name}
           onChange={(e) => update(s.id, { name: e.target.value })}
-          placeholder="Subject name"
+          placeholder="Subject name (optional)"
           autoFocus={autoFocusName}
           onFocus={autoFocusName ? onNameFocused : undefined}
           className="w-full rounded-lg bg-transparent px-2 py-2 text-sm font-medium outline-none transition-colors placeholder:text-muted-foreground/60 focus:bg-secondary"

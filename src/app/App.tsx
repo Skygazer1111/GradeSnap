@@ -69,6 +69,10 @@ export function App() {
       return;
     }
     const res = computeCgpa(valid);
+    if (res.totalCredits <= 0) {
+      toast.error("Add at least one subject with positive credits and a valid grade");
+      return;
+    }
     setSummary(res);
     setStage("result");
     toast.success("CGPA Calculated!");

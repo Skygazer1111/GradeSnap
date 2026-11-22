@@ -115,9 +115,10 @@ export function classify(cgpa: number): Classification {
  */
 export function computeCgpa(subjects: Subject[]): CgpaSummary {
   // Convert Studio format → backend format
-  const backendSubjects = subjects.map((s) => ({
+  const backendSubjects = subjects.map((s, index) => ({
     id: s.id,
-    subject: s.name,
+    // Names are optional in manual entry; the backend requires a nonempty label.
+    subject: s.name.trim() || `Subject ${index + 1}`,
     credits: s.credits,
     grade: normalizeGradeSymbol(s.grade),
     flagged: false,
@@ -130,25 +131,18 @@ export function computeCgpa(subjects: Subject[]): CgpaSummary {
   const classification = classify(result.cgpa);
 
   // Compute highest/lowest grade
-  const counts = new Map<string, number>();
-  for (const s of subjects) {
-    const g = s.grade.trim().toUpperCase() || "—";
-    counts.set(g, (counts.get(g) ?? 0) + 1);
-  }
-
   let highest = { grade: "—", count: 0, pts: -1 };
   let lowest = { grade: "—", count: 0, pts: 99 };
-  for (const s of subjects) {
-    if (s.credits <= 0) continue;
-    const g = s.grade.trim().toUpperCase() || "—";
-    if (s.points > highest.pts) highest = { grade: g, count: counts.get(g) ?? 1, pts: s.points };
-    if (s.points < lowest.pts) lowest = { grade: g, count: counts.get(g) ?? 1, pts: s.points };
+  for (const [grade, count] of Object.entries(result.gradeDistribution)) {
+    const pts = gradeToPoints(grade);
+    if (pts > highest.pts) highest = { grade, count, pts };
+    if (pts < lowest.pts) lowest = { grade, count, pts };
   }
 
   return {
     cgpa: result.cgpa,
     totalCredits: result.totalCredits,
-    totalSubjects: result.subjectsCount,
+    totalSubjects: result.includedSubjectsCount,
     weightedPoints: result.totalQualityPoints,
     classification,
     highestGrade: { grade: highest.grade, count: highest.count },
